@@ -47,3 +47,7 @@ Installed apps are tracked as empty files in `~/.local/share/ham-apps/installed/
 - Pure bash + yad (GUI) / zenity (fallback)
 - No Python, no compiled code in core
 - Target: Debian 11+ and Ubuntu 20.04+
+
+## Agentic workflow
+
+**IMPORTANT CONSTRAINT**: When orchestration is invoked (e.g. "orchestrate this", "run the orchestrator", "implement this feature"), always use the project-local agent at `.claude/agents/orchestrator.md`. Never fall back to the built-in Claude orchestrator agent. This project's orchestrator is the authoritative workflow for plan → spec → review → decompose → TDD implement.
