@@ -4,10 +4,11 @@
 HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
 source "$HAMAPPS_DIR/scripts/utils"
 
-# Require yad
+# GtkSocket/GtkPlug require X11; force XWayland if running under Wayland
+export GDK_BACKEND=x11
+
 if ! command -v yad &>/dev/null; then
   error "yad is required for the GUI. Install it with: sudo apt install yad"
-  # Fall back to zenity if available
   if command -v zenity &>/dev/null; then
     warning "Falling back to zenity (limited functionality)."
   else
@@ -15,40 +16,57 @@ if ! command -v yad &>/dev/null; then
   fi
 fi
 
-# Build the list data for yad
-build_list_data() {
+# List unique categories with "All" at top
+build_category_list() {
+  echo "All"
+  for app in $(list_all_apps); do
+    get_metadata "$app" category
+  done | sort -u
+}
+
+# Emit yad row data for each app, optionally filtered by category
+build_app_data() {
+  local cat_filter="${1:-All}"
   for app in $(list_all_apps); do
     name="$(get_metadata "$app" name)"
     category="$(get_metadata "$app" category)"
     description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null)"
+    [[ "$cat_filter" != "All" && "$category" != "$cat_filter" ]] && continue
     if is_installed "$app"; then
-      status="Installed"
-      status_icon="gtk-yes"
+      status="Installed"; status_icon="gtk-yes"
     else
-      status="Not installed"
-      status_icon="gtk-no"
+      status="Not installed"; status_icon="gtk-no"
     fi
     echo "$status_icon"
     echo "$name"
     echo "$category"
     echo "$status"
     echo "$description"
-    echo "$app"  # hidden column — internal app id
+    echo "$app"
+    echo "${name} ${category} ${description}"  # hidden — search target
   done
 }
 
-# Main window loop — redisplay after each install/uninstall
+CATEGORY="All"
+
+# Main window loop — redisplay after each action
 while true; do
-  SELECTION=$(build_list_data | yad \
+  title="ham-apps — Amateur Radio App Manager"
+  [[ "$CATEGORY" != "All" ]] && title+=" — $CATEGORY"
+
+  SELECTION=$(build_app_data "$CATEGORY" | yad \
     --list \
-    --title="ham-apps — Amateur Radio App Manager" \
-    --width=800 --height=500 \
+    --title="$title" \
+    --width=900 --height=500 \
     --column="":IMG \
     --column="Name" \
     --column="Category" \
     --column="Status" \
     --column="Description" \
     --column="id":HD \
+    --column="":HD \
+    --search-column=7 \
+    --button="Category\: $CATEGORY:6" \
     --button="Install:2" \
     --button="Uninstall:4" \
     --button="Close:0" \
@@ -59,6 +77,19 @@ while true; do
   APP_ID=$(echo "$SELECTION" | tr -d '|')
 
   case $exit_code in
+    6) # Category picker
+      picked=$(build_category_list | yad \
+        --list \
+        --title="Select Category" \
+        --width=280 --height=380 \
+        --no-headers \
+        --column="Category" \
+        --button="Select:0" \
+        --button="Cancel:1" \
+        --print-column=1 \
+        2>/dev/null)
+      [[ $? -eq 0 && -n "$picked" ]] && CATEGORY=$(echo "$picked" | tr -d '|')
+      ;;
     2) # Install
       [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }
       "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
