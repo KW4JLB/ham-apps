@@ -1,0 +1,217 @@
+#!/bin/bash
+# tests/test-ux-integration
+# Integration smoke tests for ham-apps GUI UX
+# Tests: IT-02 through IT-06
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Helper: save and restore direwolf installed state
+# ---------------------------------------------------------------------------
+DIREWOLF_INSTALLED_BEFORE=false
+_saved_status_dir="${HOME}/.local/share/ham-apps/installed"
+if [[ -f "${_saved_status_dir}/direwolf" ]]; then
+  DIREWOLF_INSTALLED_BEFORE=true
+fi
+
+restore_direwolf_state() {
+  if [[ "$DIREWOLF_INSTALLED_BEFORE" == "true" ]]; then
+    mkdir -p "$_saved_status_dir"
+    touch "$_saved_status_dir/direwolf"
+  else
+    rm -f "$_saved_status_dir/direwolf"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# IT-02: build_app_data "digital-modes" returns only digital-modes apps
+# ---------------------------------------------------------------------------
+it02_result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  export APPS_DIR="$REPO_ROOT/apps"
+
+  # Mock yad so no GUI is invoked
+  yad() { :; }
+  export -f yad
+
+  # Source utils
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+
+  # Extract and eval only the build_app_data function from gui/app-list
+  eval "$(sed -n '/^build_app_data()/,/^}/p' "$REPO_ROOT/gui/app-list")"
+
+  build_app_data "digital-modes" 2>/dev/null
+)" || it02_result="__FAILED__"
+
+# digital-modes apps are wsjtx and fldigi; packet-aprs is direwolf
+# The category column (3rd field in output stream) must only contain digital-modes
+# build_app_data emits lines: icon, name, category, status, desc, id, search
+# category is the 3rd line per app block (every 7th line starting at line 3)
+non_digital=$(echo "$it02_result" | awk 'NR % 7 == 3' | grep -v '^digital-modes$' || true)
+
+if [[ -z "$non_digital" && -n "$it02_result" ]]; then
+  pass "IT-02: build_app_data 'digital-modes' returns only digital-modes apps"
+else
+  fail "IT-02: build_app_data 'digital-modes' returned non-digital-modes apps: '$non_digital' (output: $it02_result)"
+fi
+
+# Also verify that digital-modes apps (wsjtx, fldigi) are present in the output
+if echo "$it02_result" | grep -q 'wsjtx\|fldigi\|WSJT-X\|Fldigi'; then
+  pass "IT-02b: build_app_data 'digital-modes' includes digital-modes apps"
+else
+  fail "IT-02b: build_app_data 'digital-modes' did not include any digital-modes apps"
+fi
+
+# Verify direwolf (packet-aprs) is NOT in the output
+if echo "$it02_result" | grep -qi 'direwolf'; then
+  fail "IT-02c: build_app_data 'digital-modes' incorrectly included direwolf (packet-aprs)"
+else
+  pass "IT-02c: direwolf (packet-aprs) is excluded from digital-modes filter"
+fi
+
+# ---------------------------------------------------------------------------
+# IT-03: After mark_uninstalled direwolf, direwolf row shows no <b> markup
+# ---------------------------------------------------------------------------
+export HAMAPPS_DIR="$REPO_ROOT"
+export APPS_DIR="$REPO_ROOT/apps"
+# shellcheck source=/dev/null
+source "$REPO_ROOT/scripts/utils"
+
+# Ensure direwolf is marked uninstalled
+mark_uninstalled "direwolf"
+
+it03_result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  export APPS_DIR="$REPO_ROOT/apps"
+
+  yad() { :; }
+  export -f yad
+
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+  eval "$(sed -n '/^build_app_data()/,/^}/p' "$REPO_ROOT/gui/app-list")"
+
+  build_app_data "All" 2>/dev/null
+)" || it03_result="__FAILED__"
+
+# Find the direwolf name line — it should not have <b> tags
+direwolf_name_line="$(echo "$it03_result" | grep -i 'direwolf' | grep -v '^packet-aprs$' | head -1 || true)"
+
+if echo "$direwolf_name_line" | grep -q '<b>'; then
+  fail "IT-03: direwolf name has <b> markup after mark_uninstalled (got: '$direwolf_name_line')"
+else
+  pass "IT-03: direwolf row has no <b> markup after mark_uninstalled"
+fi
+
+# Also check the status column: expect "Not installed"
+if echo "$it03_result" | grep -q 'Not installed'; then
+  pass "IT-03b: 'Not installed' status present after mark_uninstalled direwolf"
+else
+  fail "IT-03b: 'Not installed' status NOT found after mark_uninstalled direwolf"
+fi
+
+# ---------------------------------------------------------------------------
+# IT-04: After mark_installed direwolf, direwolf row shows <b> in name column
+# ---------------------------------------------------------------------------
+mark_installed "direwolf"
+
+it04_result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  export APPS_DIR="$REPO_ROOT/apps"
+
+  yad() { :; }
+  export -f yad
+
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+  eval "$(sed -n '/^build_app_data()/,/^}/p' "$REPO_ROOT/gui/app-list")"
+
+  build_app_data "All" 2>/dev/null
+)" || it04_result="__FAILED__"
+
+# The direwolf name line should have <b> tags when installed
+direwolf_bold_line="$(echo "$it04_result" | grep -i '<b>.*[Dd]irewolf\|[Dd]irewolf.*</b>' | head -1 || true)"
+
+if [[ -n "$direwolf_bold_line" ]]; then
+  pass "IT-04: direwolf name has <b> markup after mark_installed"
+else
+  # Try to find what name line looks like
+  direwolf_line="$(echo "$it04_result" | grep -i 'Direwolf' | head -1 || true)"
+  fail "IT-04: direwolf name does NOT have <b> markup after mark_installed (got: '$direwolf_line')"
+fi
+
+# Also check the status column: expect "Installed"
+if echo "$it04_result" | grep -q '^Installed$'; then
+  pass "IT-04b: 'Installed' status present after mark_installed direwolf"
+else
+  fail "IT-04b: 'Installed' status NOT found after mark_installed direwolf"
+fi
+
+# Restore original state
+restore_direwolf_state
+
+# ---------------------------------------------------------------------------
+# IT-05: gui_error produces a yad command with --error flag
+# ---------------------------------------------------------------------------
+it05_result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+
+  # Mock yad to capture its arguments
+  yad() { echo "yad_called: $*"; }
+  export -f yad
+
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+
+  gui_error "Test error message"
+)" 2>/dev/null || it05_result="__FAILED__"
+
+if echo "$it05_result" | grep -q '\-\-error'; then
+  pass "IT-05: gui_error produces yad call with --error flag"
+else
+  fail "IT-05: gui_error did NOT produce yad call with --error flag (got: '$it05_result')"
+fi
+
+# ---------------------------------------------------------------------------
+# IT-06: gui_info produces a yad command with --info flag
+# ---------------------------------------------------------------------------
+it06_result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+
+  # Mock yad to capture its arguments
+  yad() { echo "yad_called: $*"; }
+  export -f yad
+
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+
+  gui_info "Test Title" "Test info message"
+)" 2>/dev/null || it06_result="__FAILED__"
+
+if echo "$it06_result" | grep -q '\-\-info'; then
+  pass "IT-06: gui_info produces yad call with --info flag"
+else
+  fail "IT-06: gui_info did NOT produce yad call with --info flag (got: '$it06_result')"
+fi
+
+# ---------------------------------------------------------------------------
+# Ensure installed state is restored
+# ---------------------------------------------------------------------------
+restore_direwolf_state
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

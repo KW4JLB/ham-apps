@@ -1,0 +1,191 @@
+#!/bin/bash
+# tests/test-app-list-ux
+# Unit tests for markup, mnemonic buttons, Refresh button, empty-state, and
+# gui_error usage in gui/app-list
+# Red phase: all tests must FAIL before Task 2.4 implementation.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+APP_LIST="$REPO_ROOT/gui/app-list"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# UT-11: --enable-markup present in the yad --list call
+# ---------------------------------------------------------------------------
+if grep -q -- '--enable-markup' "$APP_LIST"; then
+  pass "--enable-markup is present in gui/app-list yad call"
+else
+  fail "--enable-markup is NOT present in gui/app-list yad call"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-16: Mnemonic button labels present
+# ---------------------------------------------------------------------------
+if grep -q '_Install' "$APP_LIST"; then
+  pass "_Install mnemonic label is present in gui/app-list"
+else
+  fail "_Install mnemonic label is NOT present in gui/app-list"
+fi
+
+if grep -q '_Uninstall' "$APP_LIST"; then
+  pass "_Uninstall mnemonic label is present in gui/app-list"
+else
+  fail "_Uninstall mnemonic label is NOT present in gui/app-list"
+fi
+
+if grep -q 'Fil_ter' "$APP_LIST"; then
+  pass "Fil_ter mnemonic label is present in gui/app-list"
+else
+  fail "Fil_ter mnemonic label is NOT present in gui/app-list"
+fi
+
+if grep -q 'Re_fresh' "$APP_LIST"; then
+  pass "Re_fresh mnemonic label is present in gui/app-list"
+else
+  fail "Re_fresh mnemonic label is NOT present in gui/app-list"
+fi
+
+if grep -q '_Close' "$APP_LIST"; then
+  pass "_Close mnemonic label is present in gui/app-list"
+else
+  fail "_Close mnemonic label is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-10: Re_fresh:8 button exit code present
+# ---------------------------------------------------------------------------
+if grep -q 'Re_fresh:8' "$APP_LIST"; then
+  pass "Re_fresh:8 button is present in gui/app-list"
+else
+  fail "Re_fresh:8 button is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-18: build_app_data emits <b> markup for installed apps
+# Test by sourcing the function with mocked dependencies.
+# ---------------------------------------------------------------------------
+markup_result="$(
+  # Set up a minimal fake app environment in /tmp
+  FAKE_APPS_DIR="$(mktemp -d /tmp/hamapps-test-XXXXXX)"
+  mkdir -p "$FAKE_APPS_DIR/testapp"
+  printf 'name=Test App\ncategory=testing\nwebsite=http://example.com\n' \
+    > "$FAKE_APPS_DIR/testapp/metadata"
+  printf 'A test application.\n' > "$FAKE_APPS_DIR/testapp/description"
+
+  export HAMAPPS_DIR="$REPO_ROOT"
+  export APPS_DIR="$FAKE_APPS_DIR"
+
+  # Source escape_markup and helpers from utils first
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/scripts/utils"
+
+  # Override utils functions AFTER sourcing (so our mocks take precedence)
+  # Mock is_installed to return 0 (installed) for any app
+  is_installed() { return 0; }
+
+  # Mock list_all_apps to return only our test app
+  list_all_apps() { echo "testapp"; }
+
+  # Mock get_metadata to read from the fake dir
+  get_metadata() {
+    local app="$1" field="$2"
+    grep -m1 "^${field}=" "$FAKE_APPS_DIR/$app/metadata" | cut -d= -f2-
+  }
+
+  # Source only the build_app_data function from gui/app-list
+  # Extract and eval the function definition
+  eval "$(sed -n '/^build_app_data()/,/^}/p' "$REPO_ROOT/gui/app-list")"
+
+  build_app_data "All"
+  rm -rf "$FAKE_APPS_DIR"
+)" 2>/dev/null || markup_result="__FAILED__"
+
+if echo "$markup_result" | grep -q '<b>'; then
+  pass "build_app_data emits <b> markup for installed apps"
+else
+  fail "build_app_data does NOT emit <b> markup for installed apps (got: $markup_result)"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-18b: escape_markup is called before bold wrapping (no raw <b>$name</b>)
+# Verify that the source does not contain a raw literal <b>$name</b> pattern —
+# it must use escape_markup first (safe_name).
+# ---------------------------------------------------------------------------
+if grep -q '<b>\$name<\/b>' "$APP_LIST" || grep -qP '<b>\$\{name\}</b>' "$APP_LIST" 2>/dev/null; then
+  fail "build_app_data uses raw \$name in <b> tag — escape_markup must be called first"
+else
+  pass "build_app_data does not use raw \$name in bold tag (escape_markup called first)"
+fi
+
+# Verify safe_name variable is used for the bold wrapping
+if grep -q 'safe_name' "$APP_LIST"; then
+  pass "safe_name variable is present in gui/app-list (escape_markup result stored)"
+else
+  fail "safe_name variable is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-26: Empty-state check is present in the main loop
+# ---------------------------------------------------------------------------
+if grep -q 'gui_info' "$APP_LIST"; then
+  pass "gui_info call is present in gui/app-list (empty-state check)"
+else
+  fail "gui_info call is NOT present in gui/app-list (empty-state check missing)"
+fi
+
+# Check that an empty-state condition checking build_app_data output is present
+if grep -q 'No apps' "$APP_LIST"; then
+  pass "Empty-state 'No apps' message is present in gui/app-list"
+else
+  fail "Empty-state 'No apps' message is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-17: Error conditions use gui_error, not bare yad --info
+# Check non-comment lines for bare 'yad --info' usage.
+# ---------------------------------------------------------------------------
+bare_yad_info_count="$(grep -v '^[[:space:]]*#' "$APP_LIST" | grep -c 'yad --info' || true)"
+if [[ "$bare_yad_info_count" -eq 0 ]]; then
+  pass "No bare 'yad --info' calls on error paths in gui/app-list"
+else
+  fail "Found $bare_yad_info_count bare 'yad --info' call(s) in gui/app-list — use gui_error instead"
+fi
+
+# Verify gui_error is actually called for error paths
+if grep -q 'gui_error' "$APP_LIST"; then
+  pass "gui_error is called in gui/app-list for error conditions"
+else
+  fail "gui_error is NOT called in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-10b: Case statement handles exit code 8 (Refresh)
+# ---------------------------------------------------------------------------
+if grep -q '8)' "$APP_LIST"; then
+  pass "Case statement handles exit code 8 in gui/app-list"
+else
+  fail "Case statement does NOT handle exit code 8 in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Syntax check
+# ---------------------------------------------------------------------------
+if bash -n "$APP_LIST" 2>/dev/null; then
+  pass "bash -n syntax check passes on gui/app-list"
+else
+  fail "bash -n syntax check FAILED on gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

@@ -1,0 +1,95 @@
+#!/bin/bash
+# tests/test-app-list-structure
+# Unit tests for structural improvements to gui/app-list
+# Red phase: these tests must FAIL before Task 2.2 implementation.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+APP_LIST="$REPO_ROOT/gui/app-list"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test: set -euo pipefail is present in gui/app-list
+# ---------------------------------------------------------------------------
+if grep -q 'set -euo pipefail' "$APP_LIST"; then
+  pass "set -euo pipefail is present in gui/app-list"
+else
+  fail "set -euo pipefail is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: --resizable is present in the yad call
+# ---------------------------------------------------------------------------
+if grep -q -- '--resizable' "$APP_LIST"; then
+  pass "--resizable is present in gui/app-list yad call"
+else
+  fail "--resizable is NOT present in gui/app-list yad call"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: --maximizable is present in the yad call
+# ---------------------------------------------------------------------------
+if grep -q -- '--maximizable' "$APP_LIST"; then
+  pass "--maximizable is present in gui/app-list yad call"
+else
+  fail "--maximizable is NOT present in gui/app-list yad call"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: GDK_BACKEND=x11 is present
+# ---------------------------------------------------------------------------
+if grep -q 'GDK_BACKEND=x11' "$APP_LIST"; then
+  pass "GDK_BACKEND=x11 is present in gui/app-list"
+else
+  fail "GDK_BACKEND=x11 is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: window width is 960 (--width=960)
+# ---------------------------------------------------------------------------
+if grep -q -- '--width=960' "$APP_LIST"; then
+  pass "--width=960 is present in gui/app-list"
+else
+  fail "--width=960 is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: window height is 540 (--height=540)
+# ---------------------------------------------------------------------------
+if grep -q -- '--height=540' "$APP_LIST"; then
+  pass "--height=540 is present in gui/app-list"
+else
+  fail "--height=540 is NOT present in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: SEARCH_TEXT variable declared
+# ---------------------------------------------------------------------------
+if grep -q 'SEARCH_TEXT=' "$APP_LIST"; then
+  pass "SEARCH_TEXT variable is declared in gui/app-list"
+else
+  fail "SEARCH_TEXT variable is NOT declared in gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: bash -n syntax check passes on gui/app-list
+# ---------------------------------------------------------------------------
+if bash -n "$APP_LIST" 2>/dev/null; then
+  pass "bash -n syntax check passes on gui/app-list"
+else
+  fail "bash -n syntax check FAILED on gui/app-list"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

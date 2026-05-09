@@ -1,0 +1,109 @@
+#!/bin/bash
+# tests/test-app-details-progress
+# Unit tests for gui/app-details website hyperlink and progress dialog
+# Red phase: all tests must FAIL before Task 3.4 implementation.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+APP_DETAILS="$REPO_ROOT/gui/app-details"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# UT-13: href present in gui/app-details for website Pango anchor
+# ---------------------------------------------------------------------------
+if grep -q 'href' "$APP_DETAILS"; then
+  pass "href is present in gui/app-details for website hyperlink (Pango anchor)"
+else
+  fail "href is NOT present in gui/app-details — website must be rendered as a Pango anchor"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-14: --progress or --pulsate present in gui/app-details yad call
+# ---------------------------------------------------------------------------
+if grep -q -- '--progress\|--pulsate' "$APP_DETAILS"; then
+  pass "--progress or --pulsate is present in gui/app-details"
+else
+  fail "--progress and --pulsate are NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-23: mktemp -d present (not mktemp -u — must create real tmpdir)
+# ---------------------------------------------------------------------------
+if grep -q 'mktemp -d' "$APP_DETAILS"; then
+  pass "mktemp -d is present in gui/app-details (creates real tmpdir)"
+else
+  fail "mktemp -d is NOT present in gui/app-details"
+fi
+
+# Ensure mktemp -u (unsafe) is not used
+if grep -q 'mktemp -u' "$APP_DETAILS"; then
+  fail "mktemp -u (unsafe) found in gui/app-details — use mktemp -d instead"
+else
+  pass "mktemp -u (unsafe) is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-24: BG_PID variable used in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q 'BG_PID' "$APP_DETAILS"; then
+  pass "BG_PID variable is present in gui/app-details"
+else
+  fail "BG_PID variable is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-25: Cancel button label present in progress dialog
+# ---------------------------------------------------------------------------
+if grep -q 'Cancel' "$APP_DETAILS"; then
+  pass "Cancel button label is present in gui/app-details"
+else
+  fail "Cancel button label is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# UT-20: Success message present in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q -i 'success\|successfully' "$APP_DETAILS"; then
+  pass "Success message is present in gui/app-details"
+else
+  fail "Success message is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# SC-04: trap with BG_PID kill is present (cleanup on EXIT)
+# ---------------------------------------------------------------------------
+if grep -q "trap" "$APP_DETAILS" && grep -q 'kill.*BG_PID\|BG_PID.*kill' "$APP_DETAILS"; then
+  pass "trap with BG_PID kill is present in gui/app-details (EXIT cleanup)"
+else
+  fail "trap with BG_PID kill is NOT present in gui/app-details"
+fi
+
+# Ensure trap uses EXIT signal
+if grep -q "trap.*EXIT" "$APP_DETAILS"; then
+  pass "trap uses EXIT signal in gui/app-details"
+else
+  fail "trap does NOT use EXIT signal in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Syntax check
+# ---------------------------------------------------------------------------
+if bash -n "$APP_DETAILS" 2>/dev/null; then
+  pass "bash -n syntax check passes on gui/app-details"
+else
+  fail "bash -n syntax check FAILED on gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0
