@@ -4,34 +4,29 @@ An app manager for Amateur Radio software on Debian and Ubuntu.
 
 Inspired by [pi-apps](https://github.com/Botspot/pi-apps), ham-apps makes it easy to discover, install, and remove amateur radio applications that are hard to get through standard package managers — things like WSJT-X (latest release), Direwolf (built from source), Winlink clients, and more.
 
-**[Full documentation](https://kw4jlb.github.io/ham-apps/)**
+![ham-apps GUI](images/screenshot-main.png)
 
-## Requirements
+## Why ham-apps?
 
-- Debian 11+ or Ubuntu 20.04+
-- `yad` for the GUI (`sudo apt install yad`)
-- `git` for self-updates
+Most amateur radio software isn't in the official Debian/Ubuntu repositories. What is there is often out of date. ham-apps:
 
-## Install
+- Installs software at current upstream release versions
+- Handles build-from-source apps automatically
+- Tracks what's installed so you can cleanly uninstall
+- Ships a `yad`-based GUI for users who prefer point-and-click
+
+## Quick start
 
 ```bash
-git clone <repo-url> ~/ham-apps
+git clone https://github.com/KW4JLB/ham-apps.git ~/ham-apps
 echo 'export PATH="$HOME/ham-apps:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+ham-apps
 ```
 
-## Usage
+See [Installation](getting-started/installation.md) for full details.
 
-```bash
-ham-apps                   # launch GUI browser
-ham-apps list              # list all apps and status
-ham-apps list installed    # list only installed apps
-ham-apps install wsjtx     # install an app
-ham-apps uninstall wsjtx   # remove an app
-ham-apps update            # update ham-apps itself
-```
-
-## App Categories
+## App categories
 
 | Category | Description |
 |----------|-------------|
@@ -44,11 +39,3 @@ ham-apps update            # update ham-apps itself
 | contest | Contest-focused logging |
 | mapping | APRS maps and geographic tools |
 | winlink | Radio email via Winlink |
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) or the [full contributing guide](https://kw4jlb.github.io/ham-apps/contributing/). Adding a new app means creating a directory under `apps/` with four files: `install`, `uninstall`, `description`, and `metadata`.
-
-## License
-
-MIT
