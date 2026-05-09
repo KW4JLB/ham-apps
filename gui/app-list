@@ -33,18 +33,22 @@ build_app_data() {
     category="$(get_metadata "$app" category)"
     description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null)"
     [[ "$cat_filter" != "All" && "$category" != "$cat_filter" ]] && continue
+    safe_name="$(escape_markup "$name")"
+    safe_desc="$(escape_markup "$description")"
     if is_installed "$app"; then
       status="Installed"; status_icon="gtk-yes"
+      display_name="<b>${safe_name}</b>"
     else
       status="Not installed"; status_icon="gtk-no"
+      display_name="${safe_name}"
     fi
     echo "$status_icon"
-    echo "$name"
+    echo "$display_name"
     echo "$category"
     echo "$status"
-    echo "$description"
+    echo "$safe_desc"
     echo "$app"
-    echo "${name} ${category} ${description}"  # hidden — search target
+    echo "${name} ${category} ${description}"  # hidden — search target (raw, unescaped)
   done
 }
 
@@ -56,12 +60,20 @@ while true; do
   title="ham-apps — Amateur Radio App Manager"
   [[ "$CATEGORY" != "All" ]] && title+=" — $CATEGORY"
 
+  app_data="$(build_app_data "$CATEGORY")"
+  if [[ -z "$app_data" ]]; then
+    gui_info "No apps" "No apps in category '$CATEGORY'."
+    CATEGORY="All"
+    continue
+  fi
+
   exit_code=0
-  SELECTION=$(build_app_data "$CATEGORY" | yad \
+  SELECTION=$(printf '%s\n' "$app_data" | yad \
     --list \
     --title="$title" \
     --width=960 --height=540 \
     --resizable --maximizable \
+    --enable-markup \
     --column="":IMG \
     --column="Name" \
     --column="Category" \
@@ -70,10 +82,11 @@ while true; do
     --column="id":HD \
     --column="":HD \
     --search-column=7 \
-    --button="Category\: $CATEGORY:6" \
-    --button="Install:2" \
-    --button="Uninstall:4" \
-    --button="Close:0" \
+    --button="Fil_ter\: $CATEGORY:6" \
+    --button="_Install:2" \
+    --button="_Uninstall:4" \
+    --button="Re_fresh:8" \
+    --button="_Close:0" \
     --print-column=6 \
     2>/dev/null) || exit_code=$?
   APP_ID=$(echo "$SELECTION" | tr -d '|')
@@ -94,11 +107,13 @@ while true; do
       [[ $cat_exit -eq 0 && -n "$picked" ]] && CATEGORY=$(echo "$picked" | tr -d '|')
       ;;
     2) # Install
-      [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }
+      [[ -z "$APP_ID" ]] && { gui_error "Select an app first."; continue; }
       "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
     4) # Uninstall
-      [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }
+      [[ -z "$APP_ID" ]] && { gui_error "Select an app first."; continue; }
       "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall ;;
+    8) # Refresh — redraw without changing state
+      continue ;;
     0|*) exit 0 ;;
   esac
 done

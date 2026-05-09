@@ -124,20 +124,20 @@
 - **Estimate**: 0.75h
 - **Priority**: High
 - **Dependencies**: Task 2.2
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Write tests for `--enable-markup`, bold name wrapping in `build_app_data`, mnemonic button labels, Refresh button (exit code 8), and empty-state check in the main loop.
 
 **Acceptance Criteria**:
-- [ ] Test file `tests/test-app-list-ux` created and executable
-- [ ] Test verifies `--enable-markup` present in yad call (UT-11)
-- [ ] Test verifies `_Install` / `_Uninstall` / `Fil_ter` / `Re_fresh` present (UT-16)
-- [ ] Test verifies `Re_fresh:8` present (UT-10)
-- [ ] Test verifies `<b>` markup emitted for installed app names (UT-18) using sourced build_app_data with mocked is_installed
-- [ ] Test verifies `escape_markup` called before bold wrapping (no raw `<b>$name</b>`)
-- [ ] Test verifies empty-state check present (UT-26)
-- [ ] Test verifies error conditions use `gui_error` not bare `yad --info` (UT-17)
-- [ ] All tests fail before implementation (red)
+- [x] Test file `tests/test-app-list-ux` created and executable
+- [x] Test verifies `--enable-markup` present in yad call (UT-11)
+- [x] Test verifies `_Install` / `_Uninstall` / `Fil_ter` / `Re_fresh` present (UT-16)
+- [x] Test verifies `Re_fresh:8` present (UT-10)
+- [x] Test verifies `<b>` markup emitted for installed app names (UT-18) using sourced build_app_data with mocked is_installed
+- [x] Test verifies `escape_markup` called before bold wrapping (no raw `<b>$name</b>`)
+- [x] Test verifies empty-state check present (UT-26)
+- [x] Test verifies error conditions use `gui_error` not bare `yad --info` (UT-17)
+- [x] All tests fail before implementation (red)
 
 **Implementation Notes**:
 - Test file: `tests/test-app-list-ux`
@@ -151,21 +151,21 @@
 - **Estimate**: 1.5h
 - **Priority**: High
 - **Dependencies**: Task 2.3
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Add `--enable-markup` to the yad `--list` call. Update `build_app_data` to escape and bold-wrap installed app names and escape descriptions. Update all button labels with GTK mnemonics. Add Refresh (exit code 8) button. Add empty-state check. Replace `yad --info` error paths with `gui_error`. Handle exit code 8 in the case statement.
 
 **Acceptance Criteria**:
-- [ ] `--enable-markup` present in yad `--list` call
-- [ ] `build_app_data` calls `escape_markup "$name"` before emitting name column
-- [ ] Installed apps: name column = `"<b>${safe_name}</b>"`, not-installed: `"${safe_name}"`
-- [ ] `build_app_data` calls `escape_markup "$description"` before emitting description column
-- [ ] Button labels: `"_Install:2"`, `"_Uninstall:4"`, `"Fil_ter\: $CATEGORY:6"`, `"Re_fresh:8"`, `"_Close:0"`
-- [ ] Case statement handles `8)` with `continue` (no CATEGORY/SEARCH_TEXT change)
-- [ ] Empty-state: if `build_app_data "$CATEGORY"` is empty, call `gui_info` and reset `CATEGORY="All"`, then `continue`
-- [ ] All bare `yad --info` on error paths replaced with `gui_error`
-- [ ] `shellcheck gui/app-list` exits 0
-- [ ] All Task 2.3 tests pass
+- [x] `--enable-markup` present in yad `--list` call
+- [x] `build_app_data` calls `escape_markup "$name"` before emitting name column
+- [x] Installed apps: name column = `"<b>${safe_name}</b>"`, not-installed: `"${safe_name}"`
+- [x] `build_app_data` calls `escape_markup "$description"` before emitting description column
+- [x] Button labels: `"_Install:2"`, `"_Uninstall:4"`, `"Fil_ter\: $CATEGORY:6"`, `"Re_fresh:8"`, `"_Close:0"`
+- [x] Case statement handles `8)` with `continue` (no CATEGORY/SEARCH_TEXT change)
+- [x] Empty-state: if `build_app_data "$CATEGORY"` is empty, call `gui_info` and reset `CATEGORY="All"`, then `continue`
+- [x] All bare `yad --info` on error paths replaced with `gui_error`
+- [ ] `shellcheck gui/app-list` exits 0 (shellcheck not installed in env; bash -n syntax check passes)
+- [x] All Task 2.3 tests pass
 
 **Implementation Notes**:
 - File: `gui/app-list`
