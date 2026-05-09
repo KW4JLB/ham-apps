@@ -54,3 +54,13 @@ require_root() {
     exit 1
   fi
 }
+
+# Escape special characters for Pango/yad markup
+escape_markup() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
+
+# Show a yad error dialog (non-fatal — caller decides whether to exit)
+gui_error() { yad --error --title="Error" --text="$1" --image=dialog-error --button="OK:0" 2>/dev/null; }
+
+# Show a yad info dialog
+# Usage: gui_info "Window Title" "Message text"
+gui_info() { yad --info --title="$1" --text="$2" --image=dialog-information --button="OK:0" 2>/dev/null; }

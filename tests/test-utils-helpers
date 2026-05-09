@@ -1,0 +1,107 @@
+#!/bin/bash
+# tests/test-utils-helpers
+# Unit tests for escape_markup, gui_error, gui_info in scripts/utils
+# Red phase: these tests must FAIL before Task 1.2 implementation.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+UTILS="$REPO_ROOT/scripts/utils"
+APP_DETAILS="$REPO_ROOT/gui/app-details"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test: escape_markup() is defined in scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'escape_markup()' "$UTILS"; then
+  pass "escape_markup() is defined in scripts/utils"
+else
+  fail "escape_markup() is NOT defined in scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui_error() is defined in scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'gui_error()' "$UTILS"; then
+  pass "gui_error() is defined in scripts/utils"
+else
+  fail "gui_error() is NOT defined in scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui_info() is defined in scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'gui_info()' "$UTILS"; then
+  pass "gui_info() is defined in scripts/utils"
+else
+  fail "gui_info() is NOT defined in scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: escape_markup converts & -> &amp;
+# ---------------------------------------------------------------------------
+result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  # shellcheck source=/dev/null
+  source "$UTILS"
+  escape_markup "a & b" 2>/dev/null
+)" || result="__FAILED_TO_SOURCE__"
+if [[ "$result" == "a &amp; b" ]]; then
+  pass "escape_markup converts & to &amp;"
+else
+  fail "escape_markup did not convert &: got '$result'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: escape_markup converts < -> &lt;
+# ---------------------------------------------------------------------------
+result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  # shellcheck source=/dev/null
+  source "$UTILS"
+  escape_markup "a < b" 2>/dev/null
+)" || result="__FAILED_TO_SOURCE__"
+if [[ "$result" == "a &lt; b" ]]; then
+  pass "escape_markup converts < to &lt;"
+else
+  fail "escape_markup did not convert <: got '$result'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: escape_markup converts > -> &gt;
+# ---------------------------------------------------------------------------
+result="$(
+  export HAMAPPS_DIR="$REPO_ROOT"
+  # shellcheck source=/dev/null
+  source "$UTILS"
+  escape_markup "a > b" 2>/dev/null
+)" || result="__FAILED_TO_SOURCE__"
+if [[ "$result" == "a &gt; b" ]]; then
+  pass "escape_markup converts > to &gt;"
+else
+  fail "escape_markup did not convert >: got '$result'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: escape_markup is NOT locally defined in gui/app-details
+# (It must come from utils, not be duplicated in app-details)
+# ---------------------------------------------------------------------------
+# Look for a function definition line — not a call or comment.
+if grep -qE '^escape_markup\(\)' "$APP_DETAILS"; then
+  fail "escape_markup() is still locally defined in gui/app-details (should be removed)"
+else
+  pass "escape_markup() is NOT locally defined in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0
