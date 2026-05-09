@@ -29,9 +29,9 @@ build_category_list() {
 build_app_data() {
   local cat_filter="${1:-All}"
   for app in $(list_all_apps); do
-    name="$(get_metadata "$app" name)"
-    category="$(get_metadata "$app" category)"
-    description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null)"
+    name="$(get_metadata "$app" name || true)"
+    category="$(get_metadata "$app" category || true)"
+    description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null || true)"
     [[ "$cat_filter" != "All" && "$category" != "$cat_filter" ]] && continue
     safe_name="$(escape_markup "$name")"
     safe_desc="$(escape_markup "$description")"
@@ -108,10 +108,10 @@ while true; do
       ;;
     2) # Install
       [[ -z "$APP_ID" ]] && { gui_error "Select an app first."; continue; }
-      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
+      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install || true ;;
     4) # Uninstall
       [[ -z "$APP_ID" ]] && { gui_error "Select an app first."; continue; }
-      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall ;;
+      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall || true ;;
     8) # Refresh — redraw without changing state
       continue ;;
     0|*) exit 0 ;;

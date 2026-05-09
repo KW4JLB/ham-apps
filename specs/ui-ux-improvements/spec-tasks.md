@@ -229,7 +229,7 @@
 - **Estimate**: 0.75h
 - **Priority**: High
 - **Dependencies**: Task 3.2
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Write tests for Pango anchor rendering of website (FR-07), progress dialog usage (FR-12/UT-14), BG_PID tracking (UT-24), mktemp -d usage (UT-23), cancel button (UT-25), and success dialog (UT-20).
 
@@ -254,7 +254,7 @@
 - **Estimate**: 2.5h
 - **Priority**: High
 - **Dependencies**: Task 3.3
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Add Pango anchor link for website in the INFO_TEXT. Replace `x-terminal-emulator` launch with background process + FIFO + yad --progress dialog (with Cancel and Hide buttons). Add success/failure dialog after completion. Add mktemp -d tmpdir and BG_PID tracking with trap EXIT cleanup.
 
@@ -287,7 +287,7 @@
 - **Estimate**: 1.0h
 - **Priority**: Medium
 - **Dependencies**: Task 2.4, Task 3.4
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Write integration smoke tests for `build_app_data` category filtering (IT-02), install state round-trip (IT-03, IT-04), and `gui_error`/`gui_info` yad argument verification (IT-06).
 
@@ -314,7 +314,7 @@
 - **Estimate**: 1.0h
 - **Priority**: High
 - **Dependencies**: Task 4.1
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Run the full test suite, fix any failures, and confirm shellcheck passes on all three modified files. This is the final validation task.
 

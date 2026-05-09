@@ -20,12 +20,13 @@ description="$(cat "$APPS_DIR/$APP/description" 2>/dev/null)"
 APP_ICON="$APPS_DIR/$APP/icon.png"
 [[ -f "$APP_ICON" ]] || APP_ICON="dialog-information"
 
-INFO_TEXT="<b>$(escape_markup "$name")</b>\n\nCategory: $category\nWebsite: $website\n\n$description"
+safe_website="$(escape_markup "$website")"
+INFO_TEXT="<b>$(escape_markup "$name")</b>\n\nCategory: $category\nWebsite: <a href=\"${safe_website}\">${safe_website}</a>\n\n$(escape_markup "$description")"
 
 if [[ "$ACTION" == "install" ]]; then
   yad --question \
     --title="Install $name" \
-    --text="$INFO_TEXT\n\nInstall <b>$name</b>?" \
+    --text="$INFO_TEXT\n\nInstall <b>$(escape_markup "$name")</b>?" \
     --image "$APP_ICON" \
     --button="Install:0" --button="Cancel:1" \
     2>/dev/null || exit 0
@@ -33,20 +34,54 @@ if [[ "$ACTION" == "install" ]]; then
 else
   yad --question \
     --title="Uninstall $name" \
-    --text="$INFO_TEXT\n\nRemove <b>$name</b>?" \
+    --text="$INFO_TEXT\n\nRemove <b>$(escape_markup "$name")</b>?" \
     --image "$APP_ICON" \
     --button="Uninstall:0" --button="Cancel:1" \
     2>/dev/null || exit 0
   ACTION_SCRIPT="uninstall-app"
 fi
 
-# Run install/uninstall in a terminal window
-if command -v x-terminal-emulator &>/dev/null; then
-  x-terminal-emulator -e bash -c "
-    $HAMAPPS_DIR/scripts/$ACTION_SCRIPT '$APP'
-    echo ''
-    read -p 'Press Enter to close...'
-  "
+# Run install/uninstall in the background with a yad progress dialog
+TMPDIR_WORK="$(mktemp -d /tmp/hamapps-XXXXXX)"
+LOG_FILE="${TMPDIR_WORK}/output.log"
+EXIT_FILE="${TMPDIR_WORK}/exit.code"
+FIFO="${TMPDIR_WORK}/progress.fifo"
+mkfifo "$FIFO"
+
+BG_PID=""
+trap 'kill "$BG_PID" 2>/dev/null || true; rm -rf "$TMPDIR_WORK"' EXIT
+
+{ bash "$HAMAPPS_DIR/scripts/$ACTION_SCRIPT" "$APP" >"$LOG_FILE" 2>&1; echo $? >"$EXIT_FILE"; } &
+BG_PID=$!
+
+# Feed pulsating progress dialog until background job finishes
+{
+  while kill -0 "$BG_PID" 2>/dev/null; do sleep 0.5; done
+  echo "100"
+} > "$FIFO" &
+
+yad --progress \
+  --title="${ACTION^} $name" \
+  --text="Running ${ACTION}..." \
+  --pulsate \
+  --auto-close \
+  --button="Cancel:1" \
+  2>/dev/null < "$FIFO" || {
+    kill "$BG_PID" 2>/dev/null
+    gui_info "Cancelled" "${ACTION^} of $name was cancelled."
+    exit 0
+  }
+
+wait "$BG_PID" 2>/dev/null || true
+exit_status="$(cat "$EXIT_FILE" 2>/dev/null || echo 1)"
+
+if [[ "$exit_status" == "0" ]]; then
+  if [[ "$ACTION" == "install" ]]; then
+    mark_installed "$APP"
+  else
+    mark_uninstalled "$APP"
+  fi
+  gui_info "Success" "$name ${ACTION}ed successfully."
 else
-  bash "$HAMAPPS_DIR/scripts/$ACTION_SCRIPT" "$APP"
+  gui_error "$name ${ACTION} failed. Check $LOG_FILE for details."
 fi
