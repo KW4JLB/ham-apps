@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # App detail/confirmation dialog before install or uninstall
 
 HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
@@ -7,6 +8,8 @@ source "$HAMAPPS_DIR/scripts/utils"
 APP="$1"
 ACTION="${2:-install}"  # install | uninstall
 
+[[ "$APP" =~ ^[a-zA-Z0-9_-]+$ ]] || { gui_error "Invalid app identifier."; exit 1; }
+
 require_app "$APP"
 
 name="$(get_metadata "$APP" name)"
@@ -14,12 +17,16 @@ category="$(get_metadata "$APP" category)"
 website="$(get_metadata "$APP" website)"
 description="$(cat "$APPS_DIR/$APP/description" 2>/dev/null)"
 
+APP_ICON="$APPS_DIR/$APP/icon.png"
+[[ -f "$APP_ICON" ]] || APP_ICON="dialog-information"
+
 INFO_TEXT="<b>$(escape_markup "$name")</b>\n\nCategory: $category\nWebsite: $website\n\n$description"
 
 if [[ "$ACTION" == "install" ]]; then
   yad --question \
     --title="Install $name" \
     --text="$INFO_TEXT\n\nInstall <b>$name</b>?" \
+    --image "$APP_ICON" \
     --button="Install:0" --button="Cancel:1" \
     2>/dev/null || exit 0
   ACTION_SCRIPT="install-app"
@@ -27,6 +34,7 @@ else
   yad --question \
     --title="Uninstall $name" \
     --text="$INFO_TEXT\n\nRemove <b>$name</b>?" \
+    --image "$APP_ICON" \
     --button="Uninstall:0" --button="Cancel:1" \
     2>/dev/null || exit 0
   ACTION_SCRIPT="uninstall-app"

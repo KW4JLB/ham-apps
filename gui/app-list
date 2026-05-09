@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Main GUI window — app browser using yad
 
 HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
@@ -48,16 +49,19 @@ build_app_data() {
 }
 
 CATEGORY="All"
+SEARCH_TEXT=""
 
 # Main window loop — redisplay after each action
 while true; do
   title="ham-apps — Amateur Radio App Manager"
   [[ "$CATEGORY" != "All" ]] && title+=" — $CATEGORY"
 
+  exit_code=0
   SELECTION=$(build_app_data "$CATEGORY" | yad \
     --list \
     --title="$title" \
-    --width=900 --height=500 \
+    --width=960 --height=540 \
+    --resizable --maximizable \
     --column="":IMG \
     --column="Name" \
     --column="Category" \
@@ -71,13 +75,12 @@ while true; do
     --button="Uninstall:4" \
     --button="Close:0" \
     --print-column=6 \
-    2>/dev/null)
-
-  exit_code=$?
+    2>/dev/null) || exit_code=$?
   APP_ID=$(echo "$SELECTION" | tr -d '|')
 
   case $exit_code in
     6) # Category picker
+      cat_exit=0
       picked=$(build_category_list | yad \
         --list \
         --title="Select Category" \
@@ -87,8 +90,8 @@ while true; do
         --button="Select:0" \
         --button="Cancel:1" \
         --print-column=1 \
-        2>/dev/null)
-      [[ $? -eq 0 && -n "$picked" ]] && CATEGORY=$(echo "$picked" | tr -d '|')
+        2>/dev/null) || cat_exit=$?
+      [[ $cat_exit -eq 0 && -n "$picked" ]] && CATEGORY=$(echo "$picked" | tr -d '|')
       ;;
     2) # Install
       [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }

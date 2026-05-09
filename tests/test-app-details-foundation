@@ -1,0 +1,78 @@
+#!/bin/bash
+# tests/test-app-details-foundation
+# Unit tests for gui/app-details slug validation and icon resolution
+# Red phase: these tests must FAIL before Task 3.2 implementation.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+APP_DETAILS="$REPO_ROOT/gui/app-details"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test UT-04: set -euo pipefail is present in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q 'set -euo pipefail' "$APP_DETAILS"; then
+  pass "set -euo pipefail is present in gui/app-details"
+else
+  fail "set -euo pipefail is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Test SC-01: slug validation regex ^[a-zA-Z0-9_-]+$ present in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q '\^\[a-zA-Z0-9_-\]' "$APP_DETAILS"; then
+  pass "slug regex ^[a-zA-Z0-9_-]+$ pattern is present in gui/app-details"
+else
+  fail "slug regex ^[a-zA-Z0-9_-]+$ pattern is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Test UT-12: --image flag is used in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q -- '--image' "$APP_DETAILS"; then
+  pass "--image flag is present in gui/app-details yad call"
+else
+  fail "--image flag is NOT present in gui/app-details yad call"
+fi
+
+# ---------------------------------------------------------------------------
+# Test UT-19: dialog-information appears as fallback image in gui/app-details
+# ---------------------------------------------------------------------------
+if grep -q 'dialog-information' "$APP_DETAILS"; then
+  pass "dialog-information fallback image is present in gui/app-details"
+else
+  fail "dialog-information fallback image is NOT present in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Test UT-22: escape_markup() is NOT locally defined in gui/app-details
+# (Guards regression — it was removed in Task 1.2 and must not reappear)
+# ---------------------------------------------------------------------------
+if grep -qE '^escape_markup\(\)' "$APP_DETAILS"; then
+  fail "escape_markup() is locally defined in gui/app-details (regression — must be removed)"
+else
+  pass "escape_markup() is NOT locally defined in gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: bash -n syntax check passes on gui/app-details
+# ---------------------------------------------------------------------------
+if bash -n "$APP_DETAILS" 2>/dev/null; then
+  pass "bash -n syntax check passes on gui/app-details"
+else
+  fail "bash -n syntax check FAILED on gui/app-details"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

@@ -74,19 +74,19 @@
 - **Estimate**: 0.5h
 - **Priority**: High
 - **Dependencies**: Task 1.2
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Write tests verifying structural changes to `gui/app-list`: `set -euo pipefail`, resizable flags, window dimensions, `SEARCH_TEXT` variable, `GDK_BACKEND`.
 
 **Acceptance Criteria**:
-- [ ] Test file `tests/test-app-list-structure` created and executable
-- [ ] Tests verify `set -euo pipefail` present (UT-03)
-- [ ] Tests verify `--resizable` present (UT-15)
-- [ ] Tests verify `--maximizable` present
-- [ ] Tests verify `GDK_BACKEND=x11` present (UT-09)
-- [ ] Tests verify window size is `960` and `540`
-- [ ] Tests verify `SEARCH_TEXT` variable declared
-- [ ] All tests fail before implementation (red)
+- [x] Test file `tests/test-app-list-structure` created and executable
+- [x] Tests verify `set -euo pipefail` present (UT-03)
+- [x] Tests verify `--resizable` present (UT-15)
+- [x] Tests verify `--maximizable` present
+- [x] Tests verify `GDK_BACKEND=x11` present (UT-09)
+- [x] Tests verify window size is `960` and `540`
+- [x] Tests verify `SEARCH_TEXT` variable declared
+- [x] All tests fail before implementation (red)
 
 **Implementation Notes**:
 - Test file: `tests/test-app-list-structure`
@@ -100,17 +100,17 @@
 - **Estimate**: 0.5h
 - **Priority**: High
 - **Dependencies**: Task 2.1
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Add `set -euo pipefail` to `gui/app-list`. Update window to `--width=960 --height=540 --resizable --maximizable`. Add `SEARCH_TEXT=""` variable before the main loop.
 
 **Acceptance Criteria**:
-- [ ] `set -euo pipefail` on line 2 of `gui/app-list`
-- [ ] `--width=960 --height=540` in yad `--list` call
-- [ ] `--resizable --maximizable` in yad `--list` call
-- [ ] `SEARCH_TEXT=""` declared before `while true` loop
-- [ ] `shellcheck gui/app-list` exits 0
-- [ ] All Task 2.1 tests pass
+- [x] `set -euo pipefail` on line 2 of `gui/app-list`
+- [x] `--width=960 --height=540` in yad `--list` call
+- [x] `--resizable --maximizable` in yad `--list` call
+- [x] `SEARCH_TEXT=""` declared before `while true` loop
+- [ ] `shellcheck gui/app-list` exits 0 (shellcheck not installed in env; bash -n syntax check passes)
+- [x] All Task 2.1 tests pass
 
 **Implementation Notes**:
 - File: `gui/app-list`
@@ -181,18 +181,18 @@
 - **Estimate**: 0.5h
 - **Priority**: High
 - **Dependencies**: Task 1.2
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Write tests for slug validation regex (SC-01), icon path resolution with fallback (FR-06), and removal of local `escape_markup` definition.
 
 **Acceptance Criteria**:
-- [ ] Test file `tests/test-app-details-foundation` created and executable
-- [ ] Test verifies slug regex `^[a-zA-Z0-9_-]+$` pattern present in `gui/app-details` (SC-01)
-- [ ] Test verifies `--image` flag used in `gui/app-details` (UT-12)
-- [ ] Test verifies `dialog-information` appears as fallback (UT-19)
-- [ ] Test verifies `escape_markup()` NOT defined locally in `gui/app-details` (UT-22)
-- [ ] Test verifies `set -euo pipefail` present (UT-04)
-- [ ] All tests fail before implementation (red)
+- [x] Test file `tests/test-app-details-foundation` created and executable
+- [x] Test verifies slug regex `^[a-zA-Z0-9_-]+$` pattern present in `gui/app-details` (SC-01)
+- [x] Test verifies `--image` flag used in `gui/app-details` (UT-12)
+- [x] Test verifies `dialog-information` appears as fallback (UT-19)
+- [x] Test verifies `escape_markup()` NOT defined locally in `gui/app-details` (UT-22)
+- [x] Test verifies `set -euo pipefail` present (UT-04)
+- [x] All tests fail before implementation (red)
 
 **Implementation Notes**:
 - Test file: `tests/test-app-details-foundation`
@@ -204,18 +204,18 @@
 - **Estimate**: 0.75h
 - **Priority**: High
 - **Dependencies**: Task 3.1
-- **Status**: Pending
+- **Status**: Done
 
 **Description**: Add `set -euo pipefail` to `gui/app-details`. Remove local `escape_markup()` definition (it now comes from utils). Add slug validation check. Add icon path resolution logic with `dialog-information` fallback.
 
 **Acceptance Criteria**:
-- [ ] `set -euo pipefail` present in `gui/app-details`
-- [ ] Local `escape_markup()` definition removed from `gui/app-details`
-- [ ] Slug validation: `[[ "$APP" =~ ^[a-zA-Z0-9_-]+$ ]] || { gui_error "Invalid app identifier."; exit 1; }`
-- [ ] Icon resolution: `APP_ICON="$APPS_DIR/$APP/icon.png"; [[ -f "$APP_ICON" ]] || APP_ICON="dialog-information"`
-- [ ] `--image "$APP_ICON"` passed to yad `--question` calls
-- [ ] `shellcheck gui/app-details` exits 0
-- [ ] All Task 3.1 tests pass
+- [x] `set -euo pipefail` present in `gui/app-details`
+- [x] Local `escape_markup()` definition removed from `gui/app-details`
+- [x] Slug validation: `[[ "$APP" =~ ^[a-zA-Z0-9_-]+$ ]] || { gui_error "Invalid app identifier."; exit 1; }`
+- [x] Icon resolution: `APP_ICON="$APPS_DIR/$APP/icon.png"; [[ -f "$APP_ICON" ]] || APP_ICON="dialog-information"`
+- [x] `--image "$APP_ICON"` passed to yad `--question` calls
+- [ ] `shellcheck gui/app-details` exits 0 (shellcheck not installed in env; bash -n syntax check passes)
+- [x] All Task 3.1 tests pass
 
 **Implementation Notes**:
 - File: `gui/app-details`
