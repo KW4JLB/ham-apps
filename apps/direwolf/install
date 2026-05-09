@@ -22,4 +22,10 @@ cmake --build "$TMPDIR/direwolf/build" --parallel "$(nproc)"
 info "Installing..."
 sudo cmake --install "$TMPDIR/direwolf/build"
 
+# Copy sample config to home dir if one doesn't already exist
+if [[ ! -f "$HOME/direwolf.conf" ]]; then
+  cp /usr/local/share/doc/direwolf/conf/direwolf.conf "$HOME/direwolf.conf"
+  info "Sample config written to ~/direwolf.conf — edit it before first use."
+fi
+
 success "Direwolf installed."
