@@ -1,0 +1,4 @@
+Software soundcard AX.25 TNC — APRS, packet radio, and more by WB2OSZ.
+Direwolf is a software "soundcard" modem/TNC and APRS encoder/decoder. It can
+function as a standalone APRS tracker, digipeater, IGate, or a connected TNC
+for packet radio. Works with any soundcard or audio interface.

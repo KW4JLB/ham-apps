@@ -1,0 +1,56 @@
+#!/bin/bash
+# Shared utility functions sourced by all scripts
+
+APPS_DIR="${HAMAPPS_DIR}/apps"
+STATUS_DIR="${HOME}/.local/share/ham-apps/installed"
+
+info()    { echo -e "\e[34m[INFO]\e[0m  $*"; }
+success() { echo -e "\e[32m[OK]\e[0m    $*"; }
+warning() { echo -e "\e[33m[WARN]\e[0m  $*" >&2; }
+error()   { echo -e "\e[31m[ERROR]\e[0m $*" >&2; }
+
+# Mark an app as installed/uninstalled in the status directory
+mark_installed() {
+  mkdir -p "$STATUS_DIR"
+  touch "$STATUS_DIR/$1"
+}
+
+mark_uninstalled() {
+  rm -f "$STATUS_DIR/$1"
+}
+
+is_installed() {
+  [[ -f "$STATUS_DIR/$1" ]]
+}
+
+# Read a metadata field from an app's metadata file
+# Usage: get_metadata <app-name> <field>
+get_metadata() {
+  local app="$1" field="$2"
+  local meta_file="$APPS_DIR/$app/metadata"
+  [[ -f "$meta_file" ]] || return 1
+  grep -m1 "^${field}=" "$meta_file" | cut -d= -f2-
+}
+
+# List all available app names
+list_all_apps() {
+  for d in "$APPS_DIR"/*/; do
+    [[ -d "$d" ]] && basename "$d"
+  done
+}
+
+require_app() {
+  local app="$1"
+  if [[ ! -d "$APPS_DIR/$app" ]]; then
+    error "Unknown app: '$app'"
+    echo "Run 'ham-apps list' to see available apps."
+    exit 1
+  fi
+}
+
+require_root() {
+  if [[ $EUID -ne 0 ]]; then
+    error "This operation requires root. Re-run with sudo."
+    exit 1
+  fi
+}

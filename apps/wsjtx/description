@@ -1,0 +1,4 @@
+Weak signal digital modes by K1JT — the standard for FT8, FT4, and WSPR.
+WSJT-X implements communication protocols optimized for weak-signal work,
+including FT8, FT4, JT65, JT9, WSPR, MSK144, and Q65. It is the de facto
+standard for HF digital contesting and DXing.

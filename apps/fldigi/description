@@ -1,0 +1,4 @@
+Multi-mode digital modem for amateur radio by W1HKJ.
+Fldigi supports a wide range of digital modes including PSK31, RTTY, CW, Olivia,
+MFSK, Hellschreiber, and many more. It integrates with flrig for rig control and
+flmsg for structured message handling.

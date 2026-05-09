@@ -1,0 +1,36 @@
+#!/bin/bash
+# Install WSJT-X
+# Installs the latest release from the official .deb package.
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+# Detect architecture
+ARCH="$(dpkg --print-architecture)"
+case "$ARCH" in
+  amd64|arm64) ;;
+  *) error "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+# Install dependencies
+info "Installing dependencies..."
+sudo apt-get install -y libqt5multimedia5-plugins libqt5serialport5 \
+  libqt5sql5-sqlite libusb-1.0-0 libfftw3-single3
+
+# Fetch the latest release version from upstream
+# TODO: Replace with dynamic version detection
+WSJTX_VERSION="2.7.0"
+DEB_NAME="wsjtx_${WSJTX_VERSION}_${ARCH}.deb"
+DOWNLOAD_URL="https://sourceforge.net/projects/wsjt/files/wsjtx-${WSJTX_VERSION}/${DEB_NAME}"
+
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR"' EXIT
+
+info "Downloading WSJT-X ${WSJTX_VERSION}..."
+wget -q --show-progress -O "$TMPDIR/$DEB_NAME" "$DOWNLOAD_URL"
+
+info "Installing package..."
+sudo dpkg -i "$TMPDIR/$DEB_NAME" || sudo apt-get install -f -y
+
+success "WSJT-X ${WSJTX_VERSION} installed."

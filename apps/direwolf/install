@@ -1,0 +1,25 @@
+#!/bin/bash
+# Install Direwolf — build from source for latest version
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+info "Installing build dependencies..."
+sudo apt-get install -y git build-essential cmake libasound2-dev \
+  libhamlib-dev libudev-dev
+
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR"' EXIT
+
+info "Cloning Direwolf source..."
+git clone --depth=1 https://github.com/wb2osz/direwolf.git "$TMPDIR/direwolf"
+
+info "Building..."
+cmake -B "$TMPDIR/direwolf/build" -S "$TMPDIR/direwolf"
+cmake --build "$TMPDIR/direwolf/build" --parallel "$(nproc)"
+
+info "Installing..."
+sudo cmake --install "$TMPDIR/direwolf/build"
+
+success "Direwolf installed."

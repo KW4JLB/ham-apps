@@ -1,0 +1,68 @@
+#!/bin/bash
+# Main GUI window — app browser using yad
+
+HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+# Require yad
+if ! command -v yad &>/dev/null; then
+  error "yad is required for the GUI. Install it with: sudo apt install yad"
+  # Fall back to zenity if available
+  if command -v zenity &>/dev/null; then
+    warning "Falling back to zenity (limited functionality)."
+  else
+    exit 1
+  fi
+fi
+
+# Build the list data for yad
+build_list_data() {
+  for app in $(list_all_apps); do
+    name="$(get_metadata "$app" name)"
+    category="$(get_metadata "$app" category)"
+    description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null)"
+    if is_installed "$app"; then
+      status="Installed"
+      status_icon="gtk-yes"
+    else
+      status="Not installed"
+      status_icon="gtk-no"
+    fi
+    echo "$status_icon"
+    echo "$name"
+    echo "$category"
+    echo "$status"
+    echo "$description"
+    echo "$app"  # hidden column — internal app id
+  done
+}
+
+# Main window
+SELECTION=$(build_list_data | yad \
+  --list \
+  --title="ham-apps — Amateur Radio App Manager" \
+  --width=800 --height=500 \
+  --column="":IMG \
+  --column="Name" \
+  --column="Category" \
+  --column="Status" \
+  --column="Description" \
+  --column="id":HD \
+  --button="Install:2" \
+  --button="Uninstall:4" \
+  --button="Close:0" \
+  --print-column=6 \
+  2>/dev/null)
+
+exit_code=$?
+APP_ID=$(echo "$SELECTION" | tr -d '|')
+
+case $exit_code in
+  2) # Install
+    [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; exit 0; }
+    "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
+  4) # Uninstall
+    [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; exit 0; }
+    "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall ;;
+  0|*) exit 0 ;;
+esac

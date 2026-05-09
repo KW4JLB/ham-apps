@@ -1,0 +1,36 @@
+#!/bin/bash
+# ham-apps — Amateur Radio App Manager for Debian/Ubuntu
+# Main entry point
+
+HAMAPPS_DIR="$(dirname "$(readlink -f "$0")")"
+export HAMAPPS_DIR
+
+source "$HAMAPPS_DIR/scripts/utils"
+
+case "${1:-gui}" in
+  install)
+    shift; "$HAMAPPS_DIR/scripts/install-app" "$@" ;;
+  uninstall)
+    shift; "$HAMAPPS_DIR/scripts/uninstall-app" "$@" ;;
+  list)
+    shift; "$HAMAPPS_DIR/scripts/list-apps" "$@" ;;
+  update)
+    "$HAMAPPS_DIR/scripts/update" ;;
+  gui|"")
+    "$HAMAPPS_DIR/gui/app-list" ;;
+  --version|-v)
+    echo "ham-apps $(cat "$HAMAPPS_DIR/version" 2>/dev/null || echo "dev")" ;;
+  --help|-h)
+    echo "Usage: ham-apps [command] [app-name]"
+    echo ""
+    echo "Commands:"
+    echo "  gui          Launch the graphical app browser (default)"
+    echo "  install      Install an app"
+    echo "  uninstall    Uninstall an app"
+    echo "  list         List available or installed apps"
+    echo "  update       Update ham-apps itself"
+    ;;
+  *)
+    error "Unknown command: $1. Run 'ham-apps --help' for usage."
+    exit 1 ;;
+esac

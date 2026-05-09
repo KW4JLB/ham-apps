@@ -1,0 +1,35 @@
+#!/bin/bash
+# Update ham-apps itself from the git remote
+
+HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+if ! command -v git &>/dev/null; then
+  error "git is required to update ham-apps."
+  exit 1
+fi
+
+if [[ ! -d "$HAMAPPS_DIR/.git" ]]; then
+  error "ham-apps was not installed via git; cannot self-update."
+  exit 1
+fi
+
+info "Checking for updates..."
+git -C "$HAMAPPS_DIR" fetch origin
+
+LOCAL=$(git -C "$HAMAPPS_DIR" rev-parse HEAD)
+REMOTE=$(git -C "$HAMAPPS_DIR" rev-parse @{u} 2>/dev/null)
+
+if [[ -z "$REMOTE" ]]; then
+  warning "No upstream branch configured. Skipping update."
+  exit 0
+fi
+
+if [[ "$LOCAL" == "$REMOTE" ]]; then
+  success "ham-apps is already up to date."
+  exit 0
+fi
+
+info "Updating ham-apps..."
+git -C "$HAMAPPS_DIR" pull --ff-only origin
+success "Update complete."

@@ -1,0 +1,12 @@
+# ham-apps category definitions
+# Format: id|display-name|description
+
+digital-modes|Digital Modes|Weak signal, PSK, RTTY, and other soundcard-based modes
+logging|Logging|Contest and general QSO logging software
+packet-aprs|Packet / APRS|AX.25 packet radio, APRS tracking, and messaging
+satellite|Satellite|Satellite tracking, pass prediction, and SDR for sat work
+sdr|SDR|Software-defined radio frontends and signal analysis
+tools|Tools|Rig control, antenna analysis, and general utilities
+contest|Contest|Dedicated contest logging and automation
+mapping|Mapping|Geographic tools, APRS maps, and grid square utilities
+winlink|Winlink / Email|Radio email via Winlink and Vara HF/FM

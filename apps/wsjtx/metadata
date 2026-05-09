@@ -1,0 +1,5 @@
+name=WSJT-X
+category=digital-modes
+website=https://wsjt.sourceforge.io
+tags=ft8,ft4,jt65,jt9,wspr,msk144,q65
+min-os=Ubuntu 20.04

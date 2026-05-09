@@ -1,0 +1,15 @@
+#!/bin/bash
+# Uninstall Direwolf
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+info "Removing Direwolf..."
+# Direwolf installs to /usr/local when built from source
+sudo rm -f /usr/local/bin/direwolf /usr/local/bin/decode_aprs \
+           /usr/local/bin/gen_packets /usr/local/bin/atest \
+           /usr/local/bin/kissutil /usr/local/bin/il2p_test
+sudo rm -rf /usr/local/share/doc/direwolf /usr/local/share/direwolf
+
+success "Direwolf removed."

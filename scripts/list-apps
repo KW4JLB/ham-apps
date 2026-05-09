@@ -1,0 +1,26 @@
+#!/bin/bash
+# List available or installed apps
+
+HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+MODE="${1:-all}"  # all | installed | category:<name>
+
+printf "%-20s %-16s %-12s %s\n" "APP" "CATEGORY" "STATUS" "DESCRIPTION"
+printf "%-20s %-16s %-12s %s\n" "---" "--------" "------" "-----------"
+
+for app in $(list_all_apps); do
+  category="$(get_metadata "$app" category)"
+  description="$(head -1 "$APPS_DIR/$app/description" 2>/dev/null)"
+  status="not installed"
+  is_installed "$app" && status="installed"
+
+  case "$MODE" in
+    installed)
+      is_installed "$app" || continue ;;
+    category:*)
+      [[ "$category" == "${MODE#category:}" ]] || continue ;;
+  esac
+
+  printf "%-20s %-16s %-12s %s\n" "$app" "$category" "$status" "$description"
+done

@@ -1,0 +1,10 @@
+#!/bin/bash
+# Uninstall WSJT-X
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+info "Removing WSJT-X..."
+sudo apt-get remove -y wsjtx
+success "WSJT-X removed."

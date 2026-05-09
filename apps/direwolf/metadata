@@ -1,0 +1,5 @@
+name=Direwolf
+category=packet-aprs
+website=https://github.com/wb2osz/direwolf
+tags=aprs,packet,ax25,soundmodem,igate,digipeater,tnc
+min-os=Ubuntu 20.04

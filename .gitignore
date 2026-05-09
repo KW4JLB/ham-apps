@@ -1,0 +1,12 @@
+# Temporary files
+*.tmp
+*.bak
+/tmp/
+
+# Test artifacts
+tests/results/
+
+# Editor files
+.vscode/
+*.swp
+*~

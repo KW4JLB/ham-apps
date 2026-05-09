@@ -1,0 +1,34 @@
+#!/bin/bash
+# Uninstall a ham-apps application
+
+HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+APP="$1"
+[[ -z "$APP" ]] && { error "Usage: ham-apps uninstall <app-name>"; exit 1; }
+
+require_app "$APP"
+
+if ! is_installed "$APP"; then
+  warning "$APP is not currently installed."
+  exit 0
+fi
+
+info "Uninstalling $APP..."
+uninstall_script="$APPS_DIR/$APP/uninstall"
+
+if [[ ! -f "$uninstall_script" ]]; then
+  error "No uninstall script found for $APP."
+  exit 1
+fi
+
+bash "$uninstall_script"
+exit_code=$?
+
+if [[ $exit_code -eq 0 ]]; then
+  mark_uninstalled "$APP"
+  success "$APP uninstalled successfully."
+else
+  error "$APP uninstall failed (exit code $exit_code)."
+  exit $exit_code
+fi

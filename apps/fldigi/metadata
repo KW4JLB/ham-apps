@@ -1,0 +1,5 @@
+name=Fldigi
+category=digital-modes
+website=http://www.w1hkj.com
+tags=psk31,rtty,cw,olivia,mfsk,digital,modem
+min-os=Ubuntu 20.04

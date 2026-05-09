@@ -1,0 +1,49 @@
+#!/bin/bash
+# App detail/confirmation dialog before install or uninstall
+
+HAMAPPS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+APP="$1"
+ACTION="${2:-install}"  # install | uninstall
+
+require_app "$APP"
+
+name="$(get_metadata "$APP" name)"
+category="$(get_metadata "$APP" category)"
+website="$(get_metadata "$APP" website)"
+description="$(cat "$APPS_DIR/$APP/description" 2>/dev/null)"
+
+INFO_TEXT="<b>$(escape_markup "$name")</b>\n\nCategory: $category\nWebsite: $website\n\n$description"
+
+if [[ "$ACTION" == "install" ]]; then
+  yad --question \
+    --title="Install $name" \
+    --text="$INFO_TEXT\n\nInstall <b>$name</b>?" \
+    --button="Install:0" --button="Cancel:1" \
+    2>/dev/null || exit 0
+  ACTION_SCRIPT="install-app"
+else
+  yad --question \
+    --title="Uninstall $name" \
+    --text="$INFO_TEXT\n\nRemove <b>$name</b>?" \
+    --button="Uninstall:0" --button="Cancel:1" \
+    2>/dev/null || exit 0
+  ACTION_SCRIPT="uninstall-app"
+fi
+
+# Run install/uninstall in a terminal window
+if command -v x-terminal-emulator &>/dev/null; then
+  x-terminal-emulator -e bash -c "
+    $HAMAPPS_DIR/scripts/$ACTION_SCRIPT '$APP'
+    echo ''
+    read -p 'Press Enter to close...'
+  "
+else
+  bash "$HAMAPPS_DIR/scripts/$ACTION_SCRIPT" "$APP"
+fi
+
+# Helper — yad markup escaping
+escape_markup() {
+  echo "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
