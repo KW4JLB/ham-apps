@@ -4,8 +4,6 @@ An app manager for Amateur Radio software on Debian and Ubuntu.
 
 Inspired by [pi-apps](https://github.com/Botspot/pi-apps), ham-apps makes it easy to discover, install, and remove amateur radio applications that are hard to get through standard package managers — things like WSJT-X (latest release), Direwolf (built from source), Winlink clients, and more.
 
-![ham-apps GUI](images/screenshot-main.png)
-
 ## Why ham-apps?
 
 Most amateur radio software isn't in the official Debian/Ubuntu repositories. What is there is often out of date. ham-apps:
