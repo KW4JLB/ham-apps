@@ -37,32 +37,34 @@ build_list_data() {
   done
 }
 
-# Main window
-SELECTION=$(build_list_data | yad \
-  --list \
-  --title="ham-apps — Amateur Radio App Manager" \
-  --width=800 --height=500 \
-  --column="":IMG \
-  --column="Name" \
-  --column="Category" \
-  --column="Status" \
-  --column="Description" \
-  --column="id":HD \
-  --button="Install:2" \
-  --button="Uninstall:4" \
-  --button="Close:0" \
-  --print-column=6 \
-  2>/dev/null)
+# Main window loop — redisplay after each install/uninstall
+while true; do
+  SELECTION=$(build_list_data | yad \
+    --list \
+    --title="ham-apps — Amateur Radio App Manager" \
+    --width=800 --height=500 \
+    --column="":IMG \
+    --column="Name" \
+    --column="Category" \
+    --column="Status" \
+    --column="Description" \
+    --column="id":HD \
+    --button="Install:2" \
+    --button="Uninstall:4" \
+    --button="Close:0" \
+    --print-column=6 \
+    2>/dev/null)
 
-exit_code=$?
-APP_ID=$(echo "$SELECTION" | tr -d '|')
+  exit_code=$?
+  APP_ID=$(echo "$SELECTION" | tr -d '|')
 
-case $exit_code in
-  2) # Install
-    [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; exit 0; }
-    "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
-  4) # Uninstall
-    [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; exit 0; }
-    "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall ;;
-  0|*) exit 0 ;;
-esac
+  case $exit_code in
+    2) # Install
+      [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }
+      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" install ;;
+    4) # Uninstall
+      [[ -z "$APP_ID" ]] && { yad --info --text="Select an app first." 2>/dev/null; continue; }
+      "$HAMAPPS_DIR/gui/app-details" "$APP_ID" uninstall ;;
+    0|*) exit 0 ;;
+  esac
+done
