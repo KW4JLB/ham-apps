@@ -7,6 +7,11 @@ source "$HAMAPPS_DIR/scripts/utils"
 APP="$1"
 ACTION="${2:-install}"  # install | uninstall
 
+# Helper — yad markup escaping
+escape_markup() {
+  echo "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
 require_app "$APP"
 
 name="$(get_metadata "$APP" name)"
@@ -42,8 +47,3 @@ if command -v x-terminal-emulator &>/dev/null; then
 else
   bash "$HAMAPPS_DIR/scripts/$ACTION_SCRIPT" "$APP"
 fi
-
-# Helper — yad markup escaping
-escape_markup() {
-  echo "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
-}
