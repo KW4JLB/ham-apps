@@ -1,11 +1,10 @@
 #!/bin/bash
-# tests/test-install-sh
-# Unit tests for install.sh at repo root.
-# Red phase: most tests will FAIL before install.sh is created.
-# Run: bash tests/test-install-sh
+# tests/test-install
+# Unit tests for the install script at repo root.
+# Run: bash tests/test-install
 
 REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
-INSTALL_SH="$REPO_ROOT/install.sh"
+INSTALL_SH="$REPO_ROOT/install"
 
 PASS=0
 FAIL=0
