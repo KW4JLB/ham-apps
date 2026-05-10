@@ -112,7 +112,7 @@ EXISTING_TESTS=(
   "tests/test-hamrs-scripts"
   "tests/test-trustedqsl-metadata"
   "tests/test-trustedqsl-scripts"
-  "tests/test-install-sh"
+  "tests/test-install"
 )
 
 all_existing_passed=1
