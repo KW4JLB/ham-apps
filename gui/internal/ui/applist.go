@@ -4,16 +4,21 @@
 package ui
 
 import (
+	"fmt"
 	"image/color"
+	"os"
+	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/kw4jlb/ham-apps/gui/internal/backend"
 	"github.com/kw4jlb/ham-apps/gui/internal/port"
+	runnerPkg "github.com/kw4jlb/ham-apps/gui/internal/runner"
 )
 
 // appListState holds mutable state for the AppListWindow.
@@ -84,6 +89,10 @@ func NewAppListWindow(repo port.AppRepository, runner port.RunnerService, app fy
 	uninstallBtn := widget.NewButton("Uninstall", nil)
 	uninstallBtn.Disable()
 
+	// Declared here so showDetail's onClose closure can reference it before
+	// the widget.NewList call below.
+	var list *widget.List
+
 	updateButtons := func() {
 		if state.selected < 0 || state.selected >= len(state.filtered) {
 			installBtn.Disable()
@@ -98,10 +107,76 @@ func NewAppListWindow(repo port.AppRepository, runner port.RunnerService, app fy
 		if state.selected < 0 || state.selected >= len(state.filtered) {
 			return
 		}
-		selectedApp := state.filtered[state.selected]
-		ShowAppDetailDialog(selectedApp, action, func() {
-			// onConfirm: launch install/uninstall flow (wired in task 4.1)
-			_ = runner
+		app := state.filtered[state.selected]
+
+		ShowAppDetailDialog(app, action, func() {
+			// onClose: reload app list and reset selection after any outcome.
+			onClose := func() {
+				fresh, _ := repo.LoadApps()
+				state.allApps = fresh
+				state.filtered = backend.FilterApps(fresh, state.categoryText, state.searchText)
+				state.selected = -1
+				installBtn.Disable()
+				uninstallBtn.Disable()
+				list.Refresh()
+			}
+
+			// runInstall starts the script and shows the progress/result dialogs.
+			runInstall := func() {
+				scriptName := "install-app"
+				if action == "uninstall" {
+					scriptName = "uninstall-app"
+				}
+				scriptPath := filepath.Join(repo.ScriptsDir(), scriptName)
+				cancelFn, logFile, done := runner.Start(scriptPath, app.Slug)
+
+				ShowProgressDialog(app.Name, action, logFile, cancelFn, done, w,
+					func(result port.RunResult) {
+						cleanup := func() { os.Remove(result.LogFile) }
+						switch {
+						case result.ExitCode == 0:
+							ShowSuccessDialog(app.Name, action, w, onClose)
+						case result.ExitCode == -1:
+							ShowCancelledDialog(app.Name, action, result.LogFile, cleanup, w, onClose)
+						default:
+							ShowErrorDialog(app.Name, action, result.ExitCode, result.LogFile, cleanup, w, onClose)
+						}
+					})
+			}
+
+			// If sudo credentials are already cached, start immediately.
+			if runner.CheckSudo() {
+				runInstall()
+				return
+			}
+
+			// Otherwise prompt for the sudo password via a Fyne dialog.
+			passwordEntry := widget.NewPasswordEntry()
+			passwordEntry.SetPlaceHolder("Password")
+			dialog.NewCustomConfirm(
+				"Administrator Access Required",
+				"Authenticate", "Cancel",
+				container.NewVBox(
+					widget.NewLabel(app.Name+" requires administrator access."),
+					widget.NewLabel("Enter your sudo password to continue:"),
+					passwordEntry,
+				),
+				func(ok bool) {
+					if !ok {
+						return
+					}
+					askpassPath, cleanup, err := runnerPkg.CreateAskpassScript(passwordEntry.Text)
+					if err != nil {
+						dialog.ShowError(fmt.Errorf("could not create sudo helper: %w", err), w)
+						return
+					}
+					defer cleanup()
+					if err := runnerPkg.PromptSudoWithAskpass(askpassPath); err != nil {
+						dialog.ShowError(fmt.Errorf("authentication failed — please check your password"), w)
+						return
+					}
+					runInstall()
+				}, w).Show()
 		}, w)
 	}
 
@@ -111,8 +186,6 @@ func NewAppListWindow(repo port.AppRepository, runner port.RunnerService, app fy
 	emptyState := container.NewVBox(emptyLabel, clearSearchBtn)
 
 	// --- App list widget ---
-	var list *widget.List
-
 	list = widget.NewList(
 		func() int { return len(state.filtered) },
 		func() fyne.CanvasObject {

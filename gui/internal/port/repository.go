@@ -29,4 +29,9 @@ type AppRepository interface {
 	// LoadIcon returns the raw bytes of the icon file for the given slug,
 	// or nil if the icon is absent or the path escapes the apps/ directory.
 	LoadIcon(slug string) []byte
+
+	// ScriptsDir returns the absolute path to the scripts/ directory inside
+	// the ham-apps root. Used by the UI layer to construct script paths for
+	// the runner without needing direct knowledge of HAMAPPS_DIR.
+	ScriptsDir() string
 }

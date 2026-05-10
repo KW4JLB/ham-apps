@@ -47,7 +47,7 @@ func TestBashRunner_ExitZero(t *testing.T) {
 	r := newRunner(t)
 	script := writeTempScript(t, "echo hello && exit 0")
 
-	cancel, done := r.Start(script, "test-app")
+	cancel, _, done := r.Start(script, "test-app")
 	_ = cancel // not used in this test
 
 	select {
@@ -71,7 +71,7 @@ func TestBashRunner_ExitNonZero(t *testing.T) {
 	r := newRunner(t)
 	script := writeTempScript(t, "exit 42")
 
-	_, done := r.Start(script, "test-app")
+	_, _, done := r.Start(script, "test-app")
 
 	select {
 	case result := <-done:
@@ -91,7 +91,7 @@ func TestBashRunner_LogFileMode(t *testing.T) {
 	r := newRunner(t)
 	script := writeTempScript(t, "echo logtest && exit 0")
 
-	_, done := r.Start(script, "test-app")
+	_, _, done := r.Start(script, "test-app")
 
 	select {
 	case result := <-done:
@@ -125,7 +125,7 @@ func TestBashRunner_Cancel(t *testing.T) {
 	r := newRunner(t)
 	script := writeTempScript(t, "sleep 30")
 
-	cancel, done := r.Start(script, "test-app")
+	cancel, _, done := r.Start(script, "test-app")
 
 	// Cancel immediately.
 	cancel()
@@ -159,7 +159,7 @@ func TestBashRunner_SIGTERMIgnoreKilledBySIGKILL(t *testing.T) {
 	// Script traps and ignores SIGTERM but will exit when SIGKILL is sent.
 	script := writeTempScript(t, "trap '' TERM; sleep 60")
 
-	cancel, done := r.Start(script, "test-app")
+	cancel, _, done := r.Start(script, "test-app")
 
 	// Cancel immediately — should SIGTERM first, then SIGKILL after 3s.
 	cancel()

@@ -4,10 +4,11 @@ package port
 // install/uninstall scripts and managing sudo credentials.
 type RunnerService interface {
 	// Start executes the given bash script asynchronously with slug as an
-	// argument. It returns a cancel function (which attempts to kill the
-	// process) and a channel that receives exactly one RunResult when the
-	// process exits or is killed.
-	Start(script, slug string) (cancel func(), done <-chan RunResult)
+	// argument. It returns a cancel function, the path of the live log file
+	// (created before the process starts, so callers can tail it immediately),
+	// and a channel that receives exactly one RunResult when the process exits
+	// or is killed.
+	Start(script, slug string) (cancel func(), logFile string, done <-chan RunResult)
 
 	// CheckSudo returns true if sudo credentials are already cached
 	// (i.e. "sudo -n true" exits 0).

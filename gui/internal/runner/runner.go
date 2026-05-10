@@ -23,41 +23,41 @@ type BashRunner struct{}
 //
 // The log file is created with mode 0600. The caller is responsible for
 // deleting it (its path is in RunResult.LogFile).
-func (r *BashRunner) Start(script, slug string) (cancel func(), done <-chan port.RunResult) {
+func (r *BashRunner) Start(script, slug string) (cancel func(), logFile string, done <-chan port.RunResult) {
 	// SC-02: use argument array, never shell string interpolation.
 	cmd := exec.Command("bash", script, slug)
 
 	// Create the log file (mode 0600) for combined stdout+stderr. SC-03.
-	logFile, err := os.CreateTemp("", "hamapps-*.log")
+	logFd, err := os.CreateTemp("", "hamapps-*.log")
 	if err != nil {
 		ch := make(chan port.RunResult, 1)
 		ch <- port.RunResult{ExitCode: -1, Err: err}
-		return func() {}, ch
+		return func() {}, "", ch
 	}
-	logPath := logFile.Name()
+	logPath := logFd.Name()
 	// Set mode explicitly to 0600 (os.CreateTemp already does this on Linux,
 	// but we set it explicitly for clarity and cross-platform safety).
-	if err := logFile.Chmod(0600); err != nil {
-		logFile.Close()
+	if err := logFd.Chmod(0600); err != nil {
+		logFd.Close()
 		os.Remove(logPath)
 		ch := make(chan port.RunResult, 1)
 		ch <- port.RunResult{ExitCode: -1, Err: err}
-		return func() {}, ch
+		return func() {}, "", ch
 	}
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
+	cmd.Stdout = logFd
+	cmd.Stderr = logFd
 
 	// Platform-specific: set process-group attributes (Linux: Setpgid=true).
 	setPlatformAttrs(cmd)
 
 	if err := cmd.Start(); err != nil {
-		logFile.Close()
+		logFd.Close()
 		os.Remove(logPath)
 		ch := make(chan port.RunResult, 1)
 		ch <- port.RunResult{ExitCode: -1, Err: err}
-		return func() {}, ch
+		return func() {}, "", ch
 	}
-	logFile.Close() // Close our handle; the subprocess holds its own fd.
+	logFd.Close() // Close our handle; the subprocess holds its own fd.
 
 	cancelFn := makeCancelFunc(cmd)
 
@@ -79,7 +79,7 @@ func (r *BashRunner) Start(script, slug string) (cancel func(), done <-chan port
 		}
 	}()
 
-	return cancelFn, ch
+	return cancelFn, logPath, ch
 }
 
 // CheckSudo returns true if sudo credentials are currently cached.

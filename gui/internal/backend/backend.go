@@ -160,6 +160,11 @@ func (r *FilesystemRepository) ReadVersion() string {
 	return strings.TrimSpace(string(data))
 }
 
+// ScriptsDir returns the absolute path to the scripts/ directory.
+func (r *FilesystemRepository) ScriptsDir() string {
+	return filepath.Join(r.HamappsDir, "scripts")
+}
+
 // LoadIcon returns the raw bytes of apps/<slug>/icon.png, or nil if the file
 // is absent or the path escapes the apps/ directory.
 func (r *FilesystemRepository) LoadIcon(slug string) []byte {
