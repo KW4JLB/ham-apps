@@ -1,0 +1,108 @@
+#!/bin/bash
+# tests/test-go-fyne-gui-smoke
+# Smoke tests for the Go + Fyne GUI module structure and binary properties.
+# Binary-dependent checks are gated on test -x gui/ham-apps-gui.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+GUI_DIR="$REPO_ROOT/gui"
+BINARY="$GUI_DIR/ham-apps-gui"
+GO_MOD="$GUI_DIR/go.mod"
+GO_SUM="$GUI_DIR/go.sum"
+MAKEFILE="$GUI_DIR/Makefile"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test: gui/go.mod exists
+# ---------------------------------------------------------------------------
+if test -f "$GO_MOD"; then
+  pass "gui/go.mod exists"
+else
+  fail "gui/go.mod does not exist"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui/go.mod contains the canonical module path
+# ---------------------------------------------------------------------------
+if grep -q 'ham-apps/gui' "$GO_MOD" 2>/dev/null; then
+  pass "gui/go.mod contains module path 'ham-apps/gui'"
+else
+  fail "gui/go.mod does not contain module path 'ham-apps/gui'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui/go.sum exists
+# ---------------------------------------------------------------------------
+if test -f "$GO_SUM"; then
+  pass "gui/go.sum exists"
+else
+  fail "gui/go.sum does not exist"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui/Makefile exists
+# ---------------------------------------------------------------------------
+if test -f "$MAKEFILE"; then
+  pass "gui/Makefile exists"
+else
+  fail "gui/Makefile does not exist"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: gui/Makefile contains a 'build:' target
+# ---------------------------------------------------------------------------
+if grep -q '^build:' "$MAKEFILE" 2>/dev/null; then
+  pass "gui/Makefile contains 'build:' target"
+else
+  fail "gui/Makefile does not contain 'build:' target"
+fi
+
+# ---------------------------------------------------------------------------
+# Binary-dependent checks — skipped if binary not yet built
+# ---------------------------------------------------------------------------
+if test -x "$BINARY"; then
+
+  # Test: binary is executable
+  if test -x "$BINARY"; then
+    pass "gui/ham-apps-gui is executable"
+  else
+    fail "gui/ham-apps-gui is not executable"
+  fi
+
+  # Test: binary permissions are 755
+  perms="$(stat -c '%a' "$BINARY" 2>/dev/null)"
+  if [[ "$perms" == "755" ]]; then
+    pass "gui/ham-apps-gui permissions are 755"
+  else
+    fail "gui/ham-apps-gui permissions are '$perms', expected 755"
+  fi
+
+  # Test: --version output matches expected pattern (requires HAMAPPS_DIR)
+  if [[ -n "${HAMAPPS_DIR:-}" ]]; then
+    version_out="$(HAMAPPS_DIR="$HAMAPPS_DIR" "$BINARY" --version 2>&1)"
+    if echo "$version_out" | grep -qE '^ham-apps [0-9]+\.[0-9]+\.[0-9]+'; then
+      pass "--version output matches 'ham-apps <semver>'"
+    else
+      fail "--version output did not match expected pattern: got '$version_out'"
+    fi
+  else
+    echo "SKIP: --version check skipped (HAMAPPS_DIR not set)"
+  fi
+
+else
+  echo "SKIP: binary not found at $BINARY — binary-dependent checks skipped"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

@@ -1,0 +1,87 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # -----------------------------------------------------------------------
+  # release-please: opens / updates the release PR and, on merge, creates
+  # the GitHub Release and tag.
+  # -----------------------------------------------------------------------
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name:        ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token:         ${{ secrets.GITHUB_TOKEN }}
+          config-file:   release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # -----------------------------------------------------------------------
+  # build: compiles the GUI binary for each supported architecture and
+  # uploads the artifacts to the release created above.
+  # Only runs when release-please actually cut a release (not on every push).
+  # -----------------------------------------------------------------------
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            goarch:   amd64
+            artifact: ham-apps-gui-linux-amd64
+          - runs-on: ubuntu-24.04-arm
+            goarch:   arm64
+            artifact: ham-apps-gui-linux-arm64
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          cache-dependency-path: gui/go.sum
+
+      - name: Install Fyne build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            pkg-config \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxxf86vm-dev
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: "1"
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          cd gui
+          go build \
+            -ldflags="-s -w" \
+            -o ${{ matrix.artifact }} \
+            ./cmd/ham-apps-gui
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.release-please.outputs.tag_name }} \
+            gui/${{ matrix.artifact }} \
+            --clobber
