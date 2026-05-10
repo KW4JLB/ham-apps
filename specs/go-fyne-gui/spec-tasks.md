@@ -409,7 +409,7 @@
 - **Estimate**: 2h
 - **Priority**: High
 - **Dependencies**: Task 4.2, Task 4.3
-- **Status**: Pending
+- **Status**: Complete
 
 **Description**: Write `tests/test-go-fyne-gui-integration` covering the integration between the binary, the entry point, the bash test suite, and the HAMAPPS_DIR contract. These tests verify the seam between the Go binary and the bash world.
 
@@ -437,7 +437,7 @@
 - **Estimate**: 1h
 - **Priority**: High
 - **Dependencies**: Task 5.1
-- **Status**: Pending
+- **Status**: Complete
 
 **Description**: Add `.github/workflows/go-gui.yml` implementing the CI pipeline specified in the spec. The workflow runs on push to main and on pull requests targeting main.
 
@@ -465,7 +465,7 @@
 - **Estimate**: 2h
 - **Priority**: High
 - **Dependencies**: Task 5.2
-- **Status**: Pending
+- **Status**: Complete
 
 **Description**: Update `install.sh` to handle downloading the pre-built `ham-apps-gui` binary from GitHub Releases. The update preserves the existing installation flow; the GUI binary download is added as an additional step.
 
@@ -493,7 +493,7 @@
 - **Estimate**: 0.5h
 - **Priority**: High
 - **Dependencies**: Task 5.3
-- **Status**: Pending
+- **Status**: Complete
 
 **Description**: Build the final binary, verify its properties (size, permissions, version output), and confirm all integration tests pass.
 

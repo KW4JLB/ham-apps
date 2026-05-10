@@ -4,7 +4,7 @@ Discovered during initial visual QA after Phase 4 implementation. Fix before pro
 
 ---
 
-## BUG-01 — App names and categories show placeholder text
+## BUG-01 — App names and categories show placeholder text ✅ FIXED
 
 **Severity**: High — all app rows display "App Name" and "Category" instead of real data
 
@@ -16,7 +16,7 @@ Discovered during initial visual QA after Phase 4 implementation. Fix before pro
 
 ---
 
-## BUG-02 — Search entry is too small and does not expand
+## BUG-02 — Search entry is too small and does not expand ✅ FIXED
 
 **Severity**: Medium — search bar is cramped and unusable
 
@@ -46,7 +46,7 @@ An `HBox` placed on the left of a border layout takes only its natural (minimum)
 
 ---
 
-## BUG-04 — No ham-apps application icon
+## BUG-04 — No ham-apps application icon ✅ FIXED
 
 **Severity**: Low — default Fyne window icon shown in taskbar
 
