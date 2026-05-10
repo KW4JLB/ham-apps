@@ -62,6 +62,7 @@ func main() {
 
 func runGUI() {
 	fyneApp := app.NewWithID(appID)
+	fyneApp.SetIcon(appIcon)
 
 	w, err := hamapp.Bootstrap(os.Args[0], fyneApp)
 	if err != nil {
