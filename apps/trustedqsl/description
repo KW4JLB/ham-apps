@@ -1,0 +1,4 @@
+Open-source tool for digital signatures supporting the LoTW QSL system.
+Trusted QSL (tQSL) is the required client for creating and uploading digitally
+signed ADIF log files to the ARRL Logbook of The World (LoTW) QSL confirmation
+system. It supports certificate management, log signing, and direct LoTW upload.

@@ -1,0 +1,54 @@
+#!/bin/bash
+# Install Trusted QSL
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+# TODO: dynamic version detection
+TQSL_VERSION="2.8.4"
+TQSL_URL="https://www.arrl.org/files/file/LoTW%20Instructions/tqsl-${TQSL_VERSION}.tar.gz"
+MANIFEST_DIR="/var/lib/ham-apps"
+
+# Remove any older apt-managed version to avoid conflicts
+if dpkg -l trustedqsl &>/dev/null 2>&1; then
+  info "Removing apt-installed Trusted QSL before building from source..."
+  sudo apt-get remove -y trustedqsl
+fi
+
+info "Installing build dependencies..."
+if apt-cache show libwxgtk3.2-dev &>/dev/null; then
+  WX_PKG="libwxgtk3.2-dev"
+else
+  WX_PKG="libwxgtk3.0-gtk3-dev"
+fi
+sudo apt-get install -y \
+  build-essential cmake curl \
+  libcurl4-openssl-dev libssl-dev \
+  libdb++-dev libexpat1-dev libsqlite3-dev zlib1g-dev "$WX_PKG"
+
+TMP_BUILD_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_BUILD_DIR"' EXIT
+
+info "Downloading Trusted QSL ${TQSL_VERSION}..."
+curl -fsSL "$TQSL_URL" -o "$TMP_BUILD_DIR/tqsl.tar.gz"
+
+info "Building Trusted QSL..."
+tar -xzf "$TMP_BUILD_DIR/tqsl.tar.gz" -C "$TMP_BUILD_DIR"
+cmake -B "$TMP_BUILD_DIR/build" -S "$TMP_BUILD_DIR/tqsl-${TQSL_VERSION}" \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build "$TMP_BUILD_DIR/build" -j "$(nproc)"
+
+info "Installing Trusted QSL..."
+sudo cmake --install "$TMP_BUILD_DIR/build"
+sudo ldconfig
+sudo mkdir -p "$MANIFEST_DIR"
+sudo cp "$TMP_BUILD_DIR/build/install_manifest.txt" \
+  "$MANIFEST_DIR/trustedqsl-manifest.txt"
+
+sudo sed -i 's/^Name=TQSL$/Name=Trusted QSL/' /usr/local/share/applications/org.arrl.trustedqsl.desktop
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+sudo gtk-update-icon-cache -f /usr/local/share/icons/hicolor/ 2>/dev/null || true
+
+mark_installed trustedqsl
+success "Trusted QSL ${TQSL_VERSION} installed."

@@ -7,4 +7,5 @@ source "$HAMAPPS_DIR/scripts/utils"
 
 info "Removing Fldigi..."
 sudo apt-get remove -y fldigi
+mark_uninstalled fldigi
 success "Fldigi removed."

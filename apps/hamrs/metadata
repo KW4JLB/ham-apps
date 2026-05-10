@@ -1,0 +1,5 @@
+name=HAMRS
+category=logging
+website=https://hamrs.app/
+tags=pota,field-day,logging,qso,portable,appimage
+min-os=Debian 11, Ubuntu 20.04

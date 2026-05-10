@@ -1,8 +1,39 @@
-# ham-apps — Claude Code Context
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this project is
 
 `ham-apps` is an app manager for Amateur Radio software on Debian and Ubuntu, inspired by pi-apps. It provides a GUI (yad-based) and CLI for installing apps that are difficult to get through standard package managers.
+
+## Commands
+
+**Run all tests:**
+```bash
+for t in tests/test-*; do bash "$t"; done
+```
+
+**Run a single test:**
+```bash
+bash tests/test-utils-helpers
+```
+
+**Lint a script with shellcheck:**
+```bash
+shellcheck -x scripts/utils
+shellcheck -x apps/wsjtx/install
+```
+
+**Lint all scripts at once:**
+```bash
+find . -path './.git' -prune -o -type f -print | xargs grep -lE '^#!/bin/bash' | xargs shellcheck -x
+```
+
+**Smoke-test the CLI (no GUI, no root):**
+```bash
+HAMAPPS_DIR="$PWD" bash ham-apps list
+HAMAPPS_DIR="$PWD" bash ham-apps --version
+```
 
 ## Repository layout
 
@@ -33,6 +64,12 @@ version           # semver string
 ## Install state
 
 Installed apps are tracked as empty files in `~/.local/share/ham-apps/installed/<slug>`. The `is_installed`, `mark_installed`, and `mark_uninstalled` functions in `scripts/utils` manage this.
+
+## How tests work
+
+Each file under `tests/` is a standalone bash script that prints `PASS:` / `FAIL:` lines and exits non-zero if any fail. Tests are written TDD-first (red phase) — they target specific functions or files that must exist. Tests use `grep` / `source` / `shellcheck -x` rather than a framework. No test runner is installed; just `bash tests/<name>` directly.
+
+When adding a new app, add a `tests/test-<slug>-metadata` and `tests/test-<slug>-scripts` following the pattern of existing tests.
 
 ## Key conventions
 

@@ -1,0 +1,5 @@
+name=Trusted QSL
+category=tools
+website=https://sourceforge.net/projects/trustedqsl/
+tags=lotw,qsl,digital-signature,logging
+min-os=Debian 11, Ubuntu 20.04

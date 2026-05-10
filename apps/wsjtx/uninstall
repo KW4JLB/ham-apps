@@ -7,4 +7,5 @@ source "$HAMAPPS_DIR/scripts/utils"
 
 info "Removing WSJT-X..."
 sudo apt-get remove -y wsjtx
+mark_uninstalled wsjtx
 success "WSJT-X removed."

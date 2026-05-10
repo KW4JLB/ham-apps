@@ -28,4 +28,5 @@ if [[ ! -f "$HOME/direwolf.conf" ]]; then
   info "Sample config written to ~/direwolf.conf — edit it before first use."
 fi
 
+mark_installed direwolf
 success "Direwolf installed."

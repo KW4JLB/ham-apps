@@ -6,16 +6,24 @@ Inspired by [pi-apps](https://github.com/Botspot/pi-apps), ham-apps makes it eas
 
 **[Full documentation](https://kw4jlb.github.io/ham-apps/)**
 
+## Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/KW4JLB/ham-apps/main/install.sh | bash
+```
+
+This installs ham-apps to `~/ham-apps` and adds it to your PATH. Requires Debian 11+ or Ubuntu 20.04+.
+
 ## Requirements
 
 - Debian 11+ or Ubuntu 20.04+
 - `yad` for the GUI (`sudo apt install yad`)
 - `git` for self-updates
 
-## Install
+## Manual Install
 
 ```bash
-git clone <repo-url> ~/ham-apps
+git clone https://github.com/KW4JLB/ham-apps.git ~/ham-apps
 echo 'export PATH="$HOME/ham-apps:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```

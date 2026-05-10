@@ -1,0 +1,5 @@
+Simple portable logbook tailored for POTA, Field Day, and more.
+HAMRS is a cross-platform ham radio logging application optimised for portable
+operating. It supports Parks on the Air (POTA), Field Day, SOTA, and general
+QSO logging with ADIF export. The Linux version is distributed as an AppImage
+and requires no system-wide installation of dependencies beyond FUSE.
