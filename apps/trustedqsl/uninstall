@@ -1,0 +1,30 @@
+#!/bin/bash
+# Uninstall Trusted QSL
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+MANIFEST="/var/lib/ham-apps/trustedqsl-manifest.txt"
+
+info "Removing Trusted QSL..."
+# Remove apt-managed version if present
+if dpkg -l trustedqsl &>/dev/null 2>&1; then
+  sudo apt-get remove -y trustedqsl
+fi
+
+# Remove source-built version via cmake install manifest
+if [[ -f "$MANIFEST" ]]; then
+  xargs sudo rm -f < "$MANIFEST"
+  sudo rm -f "$MANIFEST"
+else
+  warning "Install manifest not found; attempting fallback removal..."
+  sudo rm -f /usr/local/bin/tqsl /usr/local/bin/tqslcert
+  sudo rm -rf /usr/local/share/TrustedQSL /usr/local/share/tqsl
+fi
+sudo ldconfig
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+sudo gtk-update-icon-cache -f /usr/local/share/icons/hicolor/ 2>/dev/null || true
+
+mark_uninstalled trustedqsl
+success "Trusted QSL removed."

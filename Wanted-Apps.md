@@ -15,15 +15,13 @@ Below is a list of Applications to add to this project to have a more well round
 | CW Trainer for Linux | Morse code training utility for Linux operators             | [Website](https://www.qsl.net/kb1ens/cwtrainer/)            | CW                     |
 | Darkice              | Live audio encoder and streamer for internet radio          | [Website](http://www.darkice.org/)                          | packet-aprs                |
 | DXSpider             | Open-source DX cluster node software for amateur radio      | [Website](https://www.dxcluster.org/)                       | DX Cluster             |
-| 10 QSO Logger        | Ten-Ten International QSO parties logging program (Java, multiplatform) | [DXZone](https://www.dxzone.com/dx31648/10-qso-logger.html) | logging                |
-| CHIRP                | Free open-source radio programming tool supporting hundreds of transceivers | [DXZone](https://www.dxzone.com/dx21632/chirp.html)    | tools                  |
-| cqrprop              | HF propagation desktop tool for Linux using HamQSL/CQRLOG data | [DXZone](https://www.dxzone.com/dx34164/cqrprop.html)      | tools                  |
-| DF9CY Project Auriga | Java logbook with DX Cluster support and HTML log export    | [DXZone](https://www.dxzone.com/dx11438/df9cy-project-auriga.html) | logging           |
-| dxSpot               | Java-based DX cluster interface for Linux via dxWorld.com   | [DXZone](https://www.dxzone.com/dx22150/dxspot-by-k0emt.html) | tools               |
-| DX_Central           | Desktop app displaying real-time solar stats and images from NOAA | [DXZone](https://www.dxzone.com/dx22097/dx-central.html)  | tools                  |
-| ebook2cw             | Command-line tool to convert plain text ebooks to Morse code MP3 files | [DXZone](https://www.dxzone.com/dx17937/ebook2cw-text-to-morse.html) | CW          |
-| FBB Packet BBS       | Freeware packet-radio bulletin board software for Linux     | [DXZone](https://www.dxzone.com/dx43/fbb-packet-radio-bbs.html) | packet-aprs        |
-| FCC Lookup System    | Rapid FCC callsign search tool using standard FCC data files | [DXZone](https://www.dxzone.com/dx14884/fcc-lookup-system.html) | tools             |
+| 10 QSO Logger        | Ten-Ten International QSO parties logging program (Java, multiplatform) | [Website](https://n7yg.net/software/10-qso-logger) | logging                |
+| CHIRP                | Free open-source radio programming tool supporting hundreds of transceivers | [Website](https://chirpmyradio.com/projects/chirp/wiki/Home)    | tools                  |
+| cqrprop              | HF propagation desktop tool for Linux using HamQSL/CQRLOG data | [Website](https://ok2cqr.com/linuxsw/how-to/cqrprop-hf-propagation-to-your-linux-desktop)      | tools                  |
+| dxSpot               | Java-based DX cluster interface for Linux via dxWorld.com   | [Website](https://www.dbbear.com/k0emt/projsoft/dxspot/) | tools               |
+| DX_Central           | Desktop app displaying real-time solar stats and images from NOAA | [Website](https://store.falkon.org/p/1131806)  | tools                  |
+| ebook2cw             | Command-line tool to convert plain text ebooks to Morse code MP3 files | [Website](https://fkurz.net/ham/ebook2cw.html) | CW          |
+| FBB Packet BBS       | Freeware packet-radio bulletin board software for Linux     | [Website](https://www.f6fbb.org/) | packet-aprs        |
 | FDLog                | Freeware Field Day contest logging with wireless network support | [DXZone](https://www.dxzone.com/dx13745/wireless-field-day-log-program.html) | contest |
 | FFT Explorer         | Real-time spectral analysis utility using PC soundcard      | [DXZone](https://www.dxzone.com/dx14124/fft-explorer.html) | sdr                    |
 | GcmWin for Linux     | Great Circle Map for Linux showing beam headings and distances | [DXZone](https://www.dxzone.com/dx22423/gcmwin-for-linux.html) | mapping            |
@@ -60,7 +58,6 @@ Below is a list of Applications to add to this project to have a more well round
 | SlowRX               | Linux SSTV receiver using soundcard by OH2EIQ               | [DXZone](https://www.dxzone.com/dx29077/slowrx.html)       | digital-modes          |
 | Spek                 | Audio spectrogram analyzer for examining audio files        | [DXZone](https://www.dxzone.com/dx24754/spek.html)         | tools                  |
 | SvxLink              | EchoLink client and general-purpose voice services system for ham radio | [Website](https://www.svxlink.org/)                | Linking                |
-| Trusted QSL          | Open-source tool for digital signatures supporting the LoTW QSL system | [DXZone](https://www.dxzone.com/dx14551/trusted-qsl.html)  | tools             |
 | ViPEC                | Network analyzer for high-frequency linear RF circuit analysis | [DXZone](https://www.dxzone.com/dx15655/vipec-network-analyzer.html) | Engineering     |
 | Virgo                | Meteorscatter propagation app showing meteor shower radiants | [DXZone](https://www.dxzone.com/dx34893/virgo-meteorscatter-app.html) | tools           |
 | VOACAP for Linux     | Port of VOACAP HF propagation prediction suite for Linux    | [DXZone](https://www.dxzone.com/dx22018/voacap-for-linux.html) | tools               |

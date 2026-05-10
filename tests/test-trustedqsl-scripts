@@ -1,0 +1,126 @@
+#!/bin/bash
+# tests/test-trustedqsl-scripts
+# Integration tests: verify install/uninstall script structure and shellcheck compliance.
+# Red phase: these tests must FAIL before Phase 2 creates the app files.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+INSTALL="$REPO_ROOT/apps/trustedqsl/install"
+UNINSTALL="$REPO_ROOT/apps/trustedqsl/uninstall"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test 1: install contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$INSTALL" 2>/dev/null; then
+  pass "install contains set -euo pipefail"
+else
+  fail "install does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: install sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$INSTALL" 2>/dev/null; then
+  pass "install sources scripts/utils"
+else
+  fail "install does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: install downloads from ARRL and builds with cmake
+# ---------------------------------------------------------------------------
+if grep -q 'TQSL_URL=.*arrl\.org' "$INSTALL" 2>/dev/null; then
+  pass "install downloads from ARRL"
+else
+  fail "install does NOT download from ARRL"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: install calls mark_installed trustedqsl
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_installed trustedqsl' "$INSTALL" 2>/dev/null; then
+  pass "install calls mark_installed trustedqsl"
+else
+  fail "install does NOT call mark_installed trustedqsl"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: install passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for install"
+elif [[ ! -f "$INSTALL" ]]; then
+  fail "install does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$INSTALL"; then
+    pass "install passes shellcheck with zero errors"
+  else
+    fail "install does NOT pass shellcheck"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: uninstall contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall contains set -euo pipefail"
+else
+  fail "uninstall does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: uninstall sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall sources scripts/utils"
+else
+  fail "uninstall does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: uninstall removes files via cmake install manifest
+# ---------------------------------------------------------------------------
+if grep -q 'trustedqsl-manifest\.txt' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall removes files via cmake install manifest"
+else
+  fail "uninstall does NOT remove files via cmake install manifest"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 9: uninstall calls mark_uninstalled trustedqsl
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_uninstalled trustedqsl' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall calls mark_uninstalled trustedqsl"
+else
+  fail "uninstall does NOT call mark_uninstalled trustedqsl"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: uninstall passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for uninstall"
+elif [[ ! -f "$UNINSTALL" ]]; then
+  fail "uninstall does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$UNINSTALL"; then
+    pass "uninstall passes shellcheck with zero errors"
+  else
+    fail "uninstall does NOT pass shellcheck"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0
