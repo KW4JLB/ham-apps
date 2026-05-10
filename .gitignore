@@ -1,7 +1,11 @@
 # Temporary files
 *.tmp
 *.bak
+*.backup
 /tmp/
+
+# Built binaries
+gui/ham-apps-gui
 
 # Test artifacts
 tests/results/
