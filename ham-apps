@@ -17,7 +17,7 @@ case "${1:-gui}" in
   update)
     "$HAMAPPS_DIR/scripts/update" ;;
   gui|"")
-    "$HAMAPPS_DIR/gui/app-list" ;;
+    "$HAMAPPS_DIR/gui/ham-apps-gui" ;;
   --version|-v)
     echo "ham-apps $(cat "$HAMAPPS_DIR/version" 2>/dev/null || echo "dev")" ;;
   --help|-h)
