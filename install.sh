@@ -178,6 +178,63 @@ configure_path() {
 }
 
 # ---------------------------------------------------------------------------
+# GUI binary installation
+# Downloads the pre-built ham-apps-gui binary from the latest GitHub release,
+# or falls back to building from source if Go is available.
+# ---------------------------------------------------------------------------
+install_gui_binary() {
+  local hamapps_dir="$1"
+  local gui_dir="$hamapps_dir/gui"
+  local gui_binary="$gui_dir/ham-apps-gui"
+
+  # Detect architecture
+  local arch
+  case "$(uname -m)" in
+    x86_64)          arch="amd64" ;;
+    aarch64|arm64)   arch="arm64" ;;
+    *)               arch="" ;;
+  esac
+
+  if [[ -z "$arch" ]]; then
+    warning "Unsupported architecture: $(uname -m). Skipping GUI binary download."
+    return 0
+  fi
+
+  # Fetch latest release tag from GitHub API
+  local latest_tag
+  latest_tag="$(curl -fsSL "https://api.github.com/repos/KW4JLB/ham-apps/releases/latest" \
+    2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
+
+  if [[ -z "$latest_tag" ]]; then
+    warning "Could not determine latest release tag from GitHub API."
+  else
+    local download_url="https://github.com/KW4JLB/ham-apps/releases/download/${latest_tag}/ham-apps-gui-linux-${arch}"
+    info "Downloading GUI binary from $download_url ..."
+    if run_cmd curl -fsSL --output "$gui_binary" "$download_url"; then
+      run_cmd chmod 755 "$gui_binary"
+      success "GUI binary installed at $gui_binary"
+      return 0
+    else
+      warning "Download failed. Attempting to build from source..."
+    fi
+  fi
+
+  # Fallback: build from source if Go is available
+  if command -v go &>/dev/null; then
+    info "Building GUI binary from source using 'make -C $gui_dir build' ..."
+    if run_cmd make -C "$gui_dir" build; then
+      success "GUI binary built from source at $gui_binary"
+      return 0
+    else
+      warning "Build from source failed."
+    fi
+  fi
+
+  error "ham-apps GUI binary could not be installed. See docs/getting-started/installation.md"
+  exit 1
+}
+
+# ---------------------------------------------------------------------------
 # Success banner
 # ---------------------------------------------------------------------------
 print_banner() {
@@ -219,6 +276,7 @@ if [[ "${HAMAPPS_TEST_MODE:-0}" -eq 0 ]]; then
     run_cmd sudo apt-get update -qq
     run_cmd sudo apt-get install -y git yad
     run_cmd git clone "${HAMAPPS_REPO}" "$HAMAPPS_DIR"
+    run_cmd curl -fsSL --output "$HAMAPPS_DIR/gui/ham-apps-gui" "https://github.com/KW4JLB/ham-apps/releases/download/<tag>/ham-apps-gui-linux-<arch>"
     run_cmd bash -c "echo 'export PATH=\"${HAMAPPS_DIR}:\$PATH\"' >> ~/.bashrc"
     success "Dry-run complete. No changes made."
     exit 0
@@ -228,6 +286,7 @@ if [[ "${HAMAPPS_TEST_MODE:-0}" -eq 0 ]]; then
   validate_install_dir "$HAMAPPS_DIR"
   install_deps
   clone_repo "$HAMAPPS_DIR"
+  install_gui_binary "$HAMAPPS_DIR"
   configure_path
   print_banner
 fi
