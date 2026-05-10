@@ -32,7 +32,6 @@ Below is a list of Applications to add to this project to have a more well round
 | Grig                 | Simple Ham Radio control (CAT) program based on Hamlib      | [DXZone](https://www.dxzone.com/dx20422/grig.html)         | tools                  |
 | GQRX                 | Free open-source SDR receiver application for Linux and macOS | [Website](https://gqrx.dk/)                                | sdr                    |
 | Ham Fax              | Application for sending and receiving HF weather fax (WEFAX) | [DXZone](https://www.dxzone.com/dx20747/ham-fax.html)      | digital-modes          |
-| HAMRS                | Simple portable logbook tailored for POTA, Field Day, and more | [Website](https://hamrs.app/)                               | logging                |
 | Jack Audio           | Virtual audio cable software for routing audio between apps | [DXZone](https://www.dxzone.com/dx30473/jack-audio.html)   | tools                  |
 | jLog                 | Modern freeware ham log program with clean, efficient QSO entry | [DXZone](https://www.dxzone.com/dx13718/jlog.html)         | logging                |
 | JTDX                 | Free open-source software for FT8 and other digital modes   | [DXZone](https://www.dxzone.com/dx32945/jtdx.html)         | digital-modes          |
