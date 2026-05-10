@@ -220,9 +220,9 @@ func NewAppListWindow(repo port.AppRepository, runner port.RunnerService, app fy
 	// --- Layout ---
 	toolbar := container.NewBorder(
 		nil, nil,
-		container.NewHBox(search, categorySelect),
+		categorySelect,
 		container.NewHBox(installBtn, uninstallBtn, refreshBtn),
-		nil,
+		search,
 	)
 
 	content := container.NewBorder(toolbar, nil, nil, nil, listArea)
@@ -246,7 +246,12 @@ func NewAppListWindow(repo port.AppRepository, runner port.RunnerService, app fy
 // Our row was built as: NewBorder(nil, nil, icon, badge, right-col)
 // so: Objects[3]=icon(*canvas.Image), Objects[4]=badge(Stack), Objects[0]=right-col(VBox)
 func updateRowFromContainer(root *fyne.Container, appInfo port.AppInfo, repo port.AppRepository) {
-	if len(root.Objects) < 5 {
+	// NewBorder(nil, nil, icon, badge, rightCol) stores objects as:
+	//   [0] = rightCol (center/variadic, stored first)
+	//   [1] = icon    (left)
+	//   [2] = badge   (right)
+	// Nil top/bottom are omitted from the slice entirely.
+	if len(root.Objects) < 3 {
 		return
 	}
 
@@ -265,7 +270,7 @@ func updateRowFromContainer(root *fyne.Container, appInfo port.AppInfo, repo por
 	}
 
 	// Left = icon
-	iconImg, ok := root.Objects[3].(*canvas.Image)
+	iconImg, ok := root.Objects[1].(*canvas.Image)
 	if ok {
 		iconBytes := repo.LoadIcon(appInfo.Slug)
 		if iconBytes != nil {
@@ -278,7 +283,7 @@ func updateRowFromContainer(root *fyne.Container, appInfo port.AppInfo, repo por
 	}
 
 	// Right = badge Stack
-	badgeStack, ok := root.Objects[4].(*fyne.Container)
+	badgeStack, ok := root.Objects[2].(*fyne.Container)
 	if !ok || len(badgeStack.Objects) < 2 {
 		return
 	}
