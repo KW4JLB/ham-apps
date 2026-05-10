@@ -1,6 +1,6 @@
 module github.com/kw4jlb/ham-apps/gui
 
-go 1.21
+go 1.26
 
 require fyne.io/fyne/v2 v2.4.5
 
