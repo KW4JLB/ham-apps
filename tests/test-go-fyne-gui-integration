@@ -1,0 +1,143 @@
+#!/bin/bash
+# tests/test-go-fyne-gui-integration
+# Integration tests for the Go + Fyne GUI binary and its seams with the bash world.
+# Binary-dependent checks are gated on: command -v go && test -x gui/ham-apps-gui
+
+HAMAPPS_DIR="${HAMAPPS_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="$HAMAPPS_DIR"
+BINARY="$REPO_ROOT/gui/ham-apps-gui"
+HAM_APPS_ENTRY="$REPO_ROOT/ham-apps"
+GO_MOD="$REPO_ROOT/gui/go.mod"
+MAKEFILE="$REPO_ROOT/gui/Makefile"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test 1: ham-apps entry point contains 'ham-apps-gui' string
+# ---------------------------------------------------------------------------
+if grep -q 'ham-apps-gui' "$HAM_APPS_ENTRY" 2>/dev/null; then
+  pass "ham-apps entry point contains 'ham-apps-gui'"
+else
+  fail "ham-apps entry point does NOT contain 'ham-apps-gui'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: ham-apps entry point does NOT reference old gui/app-list
+# ---------------------------------------------------------------------------
+if grep -q 'gui/app-list' "$HAM_APPS_ENTRY" 2>/dev/null; then
+  fail "ham-apps entry point still references old 'gui/app-list' call"
+else
+  pass "ham-apps entry point does NOT reference 'gui/app-list' (old call removed)"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: gui/go.mod contains canonical module path
+# ---------------------------------------------------------------------------
+if grep -q 'module github.com/kw4jlb/ham-apps/gui' "$GO_MOD" 2>/dev/null; then
+  pass "gui/go.mod contains 'module github.com/kw4jlb/ham-apps/gui'"
+else
+  fail "gui/go.mod does NOT contain 'module github.com/kw4jlb/ham-apps/gui'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: gui/Makefile contains 'go vet' in test target
+# ---------------------------------------------------------------------------
+if grep -q 'go vet' "$MAKEFILE" 2>/dev/null; then
+  pass "gui/Makefile contains 'go vet' in test target"
+else
+  fail "gui/Makefile does NOT contain 'go vet'"
+fi
+
+# ---------------------------------------------------------------------------
+# Binary + Go toolchain dependent checks
+# ---------------------------------------------------------------------------
+if command -v go &>/dev/null && test -x "$BINARY"; then
+
+  # Test 5: go vet ./... exits 0
+  if (cd "$REPO_ROOT/gui" && go vet ./... 2>/dev/null); then
+    pass "cd gui && go vet ./... exits 0"
+  else
+    fail "cd gui && go vet ./... exited non-zero"
+  fi
+
+else
+  echo "SKIP: go vet check skipped (go toolchain or binary not available)"
+fi
+
+# ---------------------------------------------------------------------------
+# Binary-only dependent checks
+# ---------------------------------------------------------------------------
+if test -x "$BINARY"; then
+
+  # Test 6: binary permissions are 755 (not setuid 4755)
+  perms="$(stat -c '%a' "$BINARY" 2>/dev/null)"
+  if [[ "$perms" == "755" ]]; then
+    pass "gui/ham-apps-gui permissions are 755"
+  else
+    fail "gui/ham-apps-gui permissions are '$perms', expected 755"
+  fi
+
+  # Test 7: --version exits 0 and output matches version pattern
+  version_out="$(HAMAPPS_DIR="$REPO_ROOT" "$BINARY" --version 2>&1)"
+  version_exit=$?
+  if [[ $version_exit -eq 0 ]]; then
+    pass "gui/ham-apps-gui --version exits 0"
+  else
+    fail "gui/ham-apps-gui --version exited with code $version_exit"
+  fi
+
+  if echo "$version_out" | grep -qE '^ham-apps [0-9]+\.[0-9]+\.[0-9]+'; then
+    pass "gui/ham-apps-gui --version output matches 'ham-apps <semver>'"
+  else
+    fail "gui/ham-apps-gui --version output did not match expected pattern: got '$version_out'"
+  fi
+
+else
+  echo "SKIP: binary not found at $BINARY — binary-dependent checks skipped"
+fi
+
+# ---------------------------------------------------------------------------
+# Test: Existing bash test suite passes
+# Run each test and verify it exits 0. The SC1091 shellcheck failures on
+# hamrs/trustedqsl install scripts are pre-existing; if those tests currently
+# pass (exit 0), we require they continue to pass.
+# ---------------------------------------------------------------------------
+EXISTING_TESTS=(
+  "tests/test-utils-helpers"
+  "tests/test-hamrs-metadata"
+  "tests/test-hamrs-scripts"
+  "tests/test-trustedqsl-metadata"
+  "tests/test-trustedqsl-scripts"
+  "tests/test-install-sh"
+)
+
+all_existing_passed=1
+for t in "${EXISTING_TESTS[@]}"; do
+  test_path="$REPO_ROOT/$t"
+  if [[ ! -f "$test_path" ]]; then
+    fail "Existing test file not found: $t"
+    all_existing_passed=0
+    continue
+  fi
+  # Run each test from the repo root so shellcheck can resolve relative paths
+  if (cd "$REPO_ROOT" && bash "$test_path" >/dev/null 2>&1); then
+    pass "Existing test passes: $t"
+  else
+    fail "Existing test FAILED: $t"
+    all_existing_passed=0
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0
