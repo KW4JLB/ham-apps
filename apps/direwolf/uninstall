@@ -6,10 +6,17 @@ HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
 source "$HAMAPPS_DIR/scripts/utils"
 
 info "Removing Direwolf..."
-# Direwolf installs to /usr/local when built from source
+# Remove apt-managed version if present
+if dpkg -l direwolf &>/dev/null 2>&1; then
+  sudo apt-get remove -y direwolf
+fi
+# Remove source-built version (installs to /usr/local)
 sudo rm -f /usr/local/bin/direwolf /usr/local/bin/decode_aprs \
            /usr/local/bin/gen_packets /usr/local/bin/atest \
            /usr/local/bin/kissutil /usr/local/bin/il2p_test
 sudo rm -rf /usr/local/share/doc/direwolf /usr/local/share/direwolf
+sudo rm -f /usr/local/share/applications/direwolf.desktop
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
 
+mark_uninstalled direwolf
 success "Direwolf removed."

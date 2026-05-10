@@ -8,4 +8,5 @@ source "$HAMAPPS_DIR/scripts/utils"
 info "Installing Fldigi..."
 sudo apt-get install -y fldigi
 
+mark_installed fldigi
 success "Fldigi installed."

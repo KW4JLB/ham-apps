@@ -1,0 +1,208 @@
+#!/bin/bash
+# tests/test-hamrs-scripts
+# Integration tests: verify install/uninstall script structure and shellcheck compliance.
+# Red phase: these tests FAIL before apps/hamrs/install and apps/hamrs/uninstall exist.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+INSTALL="$REPO_ROOT/apps/hamrs/install"
+UNINSTALL="$REPO_ROOT/apps/hamrs/uninstall"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ===========================================================================
+# INSTALL SCRIPT TESTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Test 1: install contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$INSTALL" 2>/dev/null; then
+  pass "install contains set -euo pipefail"
+else
+  fail "install does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: install sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$INSTALL" 2>/dev/null; then
+  pass "install sources scripts/utils"
+else
+  fail "install does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: install has TODO comment for hardcoded version
+# ---------------------------------------------------------------------------
+if grep -qF '# TODO: dynamic version detection' "$INSTALL" 2>/dev/null; then
+  pass "install has TODO comment for hardcoded version"
+else
+  fail "install does NOT have TODO comment for hardcoded version"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: install downloads from hamrs-dist.s3.amazonaws.com
+# ---------------------------------------------------------------------------
+if grep -q 'hamrs-dist\.s3\.amazonaws\.com' "$INSTALL" 2>/dev/null; then
+  pass "install downloads from hamrs-dist.s3.amazonaws.com"
+else
+  fail "install does NOT download from hamrs-dist.s3.amazonaws.com"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: install has trap for temp dir cleanup
+# ---------------------------------------------------------------------------
+if grep -qF 'trap' "$INSTALL" 2>/dev/null; then
+  pass "install has trap for temp dir cleanup"
+else
+  fail "install does NOT have trap for temp dir cleanup"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: install calls mark_installed hamrs
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_installed hamrs' "$INSTALL" 2>/dev/null; then
+  pass "install calls mark_installed hamrs"
+else
+  fail "install does NOT call mark_installed hamrs"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: install creates desktop file at correct path
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/share/applications/hamrs\.desktop' "$INSTALL" 2>/dev/null; then
+  pass "install references /usr/local/share/applications/hamrs.desktop"
+else
+  fail "install does NOT reference /usr/local/share/applications/hamrs.desktop"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: install creates wrapper at /usr/local/bin/hamrs
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/bin/hamrs' "$INSTALL" 2>/dev/null; then
+  pass "install references /usr/local/bin/hamrs wrapper"
+else
+  fail "install does NOT reference /usr/local/bin/hamrs wrapper"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 9: install places AppImage at /opt/hamrs/
+# ---------------------------------------------------------------------------
+if grep -q '/opt/hamrs/' "$INSTALL" 2>/dev/null; then
+  pass "install references /opt/hamrs/ install location"
+else
+  fail "install does NOT reference /opt/hamrs/ install location"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: install detects architecture with uname
+# ---------------------------------------------------------------------------
+if grep -q 'uname' "$INSTALL" 2>/dev/null; then
+  pass "install detects architecture with uname"
+else
+  fail "install does NOT detect architecture with uname"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: install passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for install"
+elif [[ ! -f "$INSTALL" ]]; then
+  fail "install does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$INSTALL" 2>/dev/null; then
+    pass "install passes shellcheck with zero errors"
+  else
+    fail "install does NOT pass shellcheck"
+    shellcheck -x "$INSTALL" 2>&1 | head -20
+  fi
+fi
+
+# ===========================================================================
+# UNINSTALL SCRIPT TESTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Test 12: uninstall contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall contains set -euo pipefail"
+else
+  fail "uninstall does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 13: uninstall sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall sources scripts/utils"
+else
+  fail "uninstall does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 14: uninstall removes /opt/hamrs/
+# ---------------------------------------------------------------------------
+if grep -q '/opt/hamrs/' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /opt/hamrs/ removal"
+else
+  fail "uninstall does NOT reference /opt/hamrs/ removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 15: uninstall removes wrapper at /usr/local/bin/hamrs
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/bin/hamrs' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /usr/local/bin/hamrs removal"
+else
+  fail "uninstall does NOT reference /usr/local/bin/hamrs removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 16: uninstall removes desktop file
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/share/applications/hamrs\.desktop' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references hamrs.desktop removal"
+else
+  fail "uninstall does NOT reference hamrs.desktop removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 17: uninstall calls mark_uninstalled hamrs
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_uninstalled hamrs' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall calls mark_uninstalled hamrs"
+else
+  fail "uninstall does NOT call mark_uninstalled hamrs"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 18: uninstall passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for uninstall"
+elif [[ ! -f "$UNINSTALL" ]]; then
+  fail "uninstall does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$UNINSTALL" 2>/dev/null; then
+    pass "uninstall passes shellcheck with zero errors"
+  else
+    fail "uninstall does NOT pass shellcheck"
+    shellcheck -x "$UNINSTALL" 2>&1 | head -20
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

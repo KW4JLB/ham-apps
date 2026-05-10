@@ -41,6 +41,29 @@ else
   ACTION_SCRIPT="uninstall-app"
 fi
 
+# If sudo credentials aren't cached, prompt via a yad GUI dialog rather than
+# the terminal, so the user never has to interact with the terminal.
+if ! sudo -n true 2>/dev/null; then
+  ASKPASS_SCRIPT="$(mktemp /tmp/hamapps-askpass-XXXXXX.sh)"
+  chmod +x "$ASKPASS_SCRIPT"
+  cat > "$ASKPASS_SCRIPT" <<EOF
+#!/bin/bash
+yad --entry \
+  --title="ham-apps — administrator password" \
+  --text="<b>$(escape_markup "$name")</b> requires administrator access.\n\nEnter your password to continue:" \
+  --hide-text \
+  2>/dev/null
+EOF
+  export SUDO_ASKPASS="$ASKPASS_SCRIPT"
+  if ! sudo -A -v 2>/dev/null; then
+    rm -f "$ASKPASS_SCRIPT"
+    gui_error "Authentication failed; cannot ${ACTION} $name."
+    exit 1
+  fi
+  rm -f "$ASKPASS_SCRIPT"
+  unset SUDO_ASKPASS
+fi
+
 # Run install/uninstall in the background with a yad progress dialog
 TMPDIR_WORK="$(mktemp -d /tmp/hamapps-XXXXXX)"
 LOG_FILE="${TMPDIR_WORK}/output.log"
@@ -49,10 +72,15 @@ FIFO="${TMPDIR_WORK}/progress.fifo"
 mkfifo "$FIFO"
 
 BG_PID=""
-trap 'kill "$BG_PID" 2>/dev/null || true; rm -rf "$TMPDIR_WORK"' EXIT
+KEEPALIVE_PID=""
+trap 'kill "$BG_PID" "$KEEPALIVE_PID" 2>/dev/null || true; rm -rf "$TMPDIR_WORK"' EXIT
 
 { bash "$HAMAPPS_DIR/scripts/$ACTION_SCRIPT" "$APP" >"$LOG_FILE" 2>&1; echo $? >"$EXIT_FILE"; } &
 BG_PID=$!
+
+# Keep sudo timestamp alive for long installs (refreshes every 60 s)
+{ while kill -0 "$BG_PID" 2>/dev/null; do sudo -n -v 2>/dev/null; sleep 60; done; } &
+KEEPALIVE_PID=$!
 
 # Feed pulsating progress dialog until background job finishes
 {

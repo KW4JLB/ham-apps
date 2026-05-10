@@ -1,0 +1,72 @@
+#!/bin/bash
+# Install HAMRS — portable ham radio logbook (AppImage)
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+# TODO: dynamic version detection
+HAMRS_VERSION="2.49.0"
+
+# Map host architecture to the AppImage filename suffix used by HAMRS
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64)        APPIMAGE_ARCH="x86_64" ;;
+  aarch64|arm64) APPIMAGE_ARCH="arm64" ;;
+  armv7l)        APPIMAGE_ARCH="armv7l" ;;
+  *)
+    error "Unsupported architecture: $ARCH"
+    exit 1
+    ;;
+esac
+
+HAMRS_URL="https://hamrs-dist.s3.amazonaws.com/hamrs-pro-${HAMRS_VERSION}-linux-${APPIMAGE_ARCH}.AppImage"
+
+# AppImages require FUSE to run; install libfuse2 (Debian/Ubuntu) or fuse as fallback
+info "Checking FUSE dependency..."
+if dpkg -l libfuse2 &>/dev/null 2>&1; then
+  : # already installed
+elif dpkg -l fuse &>/dev/null 2>&1; then
+  : # already installed
+elif apt-cache show libfuse2 &>/dev/null 2>&1; then
+  sudo apt-get install -y libfuse2
+else
+  sudo apt-get install -y fuse
+fi
+
+# Create install directory
+sudo mkdir -p /opt/hamrs
+
+# Download AppImage to a temp dir; clean up on exit regardless of outcome
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+info "Downloading HAMRS ${HAMRS_VERSION} (${APPIMAGE_ARCH})..."
+curl -fsSL "$HAMRS_URL" -o "$TMP_DIR/hamrs.AppImage"
+
+info "Installing HAMRS..."
+sudo mv "$TMP_DIR/hamrs.AppImage" /opt/hamrs/hamrs.AppImage
+sudo chmod +x /opt/hamrs/hamrs.AppImage
+
+# Create a wrapper so the AppImage is on PATH without polluting /opt in PATH
+printf '#!/bin/bash\nexec /opt/hamrs/hamrs.AppImage "$@"\n' \
+  | sudo tee /usr/local/bin/hamrs > /dev/null
+sudo chmod +x /usr/local/bin/hamrs
+
+# Create a desktop entry for GUI launchers
+sudo tee /usr/local/share/applications/hamrs.desktop > /dev/null <<'DESKTOP'
+[Desktop Entry]
+Name=HAMRS
+Comment=Portable ham radio logbook for POTA, Field Day, and more
+Exec=/usr/local/bin/hamrs
+Icon=hamrs
+Type=Application
+Categories=HamRadio;Utility;
+Terminal=false
+StartupNotify=true
+DESKTOP
+
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+
+mark_installed hamrs
+success "HAMRS ${HAMRS_VERSION} installed."

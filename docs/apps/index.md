@@ -15,6 +15,12 @@ ham-apps currently ships the following applications. Run `ham-apps list` to see 
 |-----|-------------|
 | direwolf | Software AX.25 TNC and APRS digipeater/IGate |
 
+## logging
+
+| App | Description |
+|-----|-------------|
+| hamrs | Simple portable logbook tailored for POTA, Field Day, and more |
+
 ## tools
 
 | App | Description |

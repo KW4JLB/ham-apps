@@ -1,0 +1,17 @@
+#!/bin/bash
+# Uninstall HAMRS
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+source "$HAMAPPS_DIR/scripts/utils"
+
+info "Removing HAMRS..."
+
+sudo rm -rf /opt/hamrs/
+sudo rm -f /usr/local/bin/hamrs
+sudo rm -f /usr/local/share/applications/hamrs.desktop
+
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+
+mark_uninstalled hamrs
+success "HAMRS removed."
