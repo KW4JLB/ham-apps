@@ -1,0 +1,57 @@
+name: Go GUI CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.21'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            pkg-config \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxxf86vm-dev
+
+      - name: Run go vet
+        run: cd gui && go vet ./...
+
+      - name: Run Go unit tests
+        run: cd gui && go test ./internal/app/... ./internal/backend/... ./internal/runner/...
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          cd gui && govulncheck ./...
+
+      - name: Build binary
+        run: cd gui && CGO_ENABLED=1 go build -ldflags="-s -w" -o ham-apps-gui ./cmd/ham-apps-gui
+
+      - name: Verify binary version
+        run: HAMAPPS_DIR="$GITHUB_WORKSPACE" gui/ham-apps-gui --version
+
+      - name: Run bash test suite
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          for t in tests/test-*; do bash "$t"; done
