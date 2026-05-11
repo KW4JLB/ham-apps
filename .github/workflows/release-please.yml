@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build and upload assets for (e.g. v1.0.0)'
+        required: true
 
 permissions:
   contents: write
@@ -13,8 +20,10 @@ jobs:
   # -----------------------------------------------------------------------
   # release-please: opens / updates the release PR and, on merge, creates
   # the GitHub Release and tag.
+  # Only runs on branch pushes — skip on tag pushes and manual dispatches.
   # -----------------------------------------------------------------------
   release-please:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -29,12 +38,20 @@ jobs:
 
   # -----------------------------------------------------------------------
   # build: compiles the GUI binary for each supported architecture and
-  # uploads the artifacts to the release created above.
-  # Only runs when release-please actually cut a release (not on every push).
+  # uploads the artifacts to the release.
+  # Runs when:
+  #   - release-please just cut a release (normal automated flow)
+  #   - a version tag is pushed directly (e.g. manual tag)
+  #   - workflow_dispatch with an explicit tag_name (e.g. backfill assets)
   # -----------------------------------------------------------------------
   build:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: [release-please]
+    if: >-
+      always() && (
+        (needs.release-please.result == 'success' && needs.release-please.outputs.release_created == 'true') ||
+        github.ref_type == 'tag' ||
+        github.event_name == 'workflow_dispatch'
+      )
     strategy:
       matrix:
         include:
@@ -78,10 +95,21 @@ jobs:
             -o ${{ matrix.artifact }} \
             ./cmd/ham-apps-gui
 
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            echo "name=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ needs.release-please.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload release asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ needs.release-please.outputs.tag_name }} \
+          gh release upload ${{ steps.tag.outputs.name }} \
             gui/${{ matrix.artifact }} \
             --clobber
