@@ -7,12 +7,11 @@
 #
 # Environment overrides:
 #   HAMAPPS_DIR   — installation directory (default: $HOME/ham-apps)
-#   HAMAPPS_REPO  — git clone URL (default: https://github.com/KW4JLB/ham-apps.git)
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Inline colour helpers (cannot source scripts/utils — this runs before clone)
+# Inline colour helpers (cannot source scripts/utils — this runs before install)
 # ---------------------------------------------------------------------------
 info()    { echo -e "\e[34m[INFO]\e[0m  $*"; }
 success() { echo -e "\e[32m[OK]\e[0m    $*"; }
@@ -37,7 +36,6 @@ Options:
 
 Environment variables:
   HAMAPPS_DIR    Installation directory (default: $HOME/ham-apps)
-  HAMAPPS_REPO   Git clone URL (default: https://github.com/KW4JLB/ham-apps.git)
 
 Example:
   curl -fsSL https://raw.githubusercontent.com/KW4JLB/ham-apps/main/install | bash
@@ -109,134 +107,174 @@ check_os() {
 # ---------------------------------------------------------------------------
 validate_install_dir() {
   local dir="$1"
-  # Reject paths containing shell metacharacters
   if [[ "$dir" =~ [\$\(\)\`\;\|\&\<\>\"\'\\] ]]; then
     die "HAMAPPS_DIR contains invalid characters. Use a plain filesystem path."
   fi
-  # Must be an absolute path or start with ~ (home-relative)
   if [[ "$dir" != /* && "$dir" != "~"* ]]; then
     die "HAMAPPS_DIR must be an absolute path (e.g. /home/user/ham-apps)."
   fi
 }
 
 # ---------------------------------------------------------------------------
-# Dependency installation
-# The GUI is a self-contained Go+Fyne binary — no yad or other GUI toolkit
-# required. We only need git (for clone and self-updates) and curl (for
-# downloading the pre-built binary from GitHub Releases).
+# Detect CPU architecture (shared by install_go and install_release)
+# ---------------------------------------------------------------------------
+detect_arch() {
+  case "$(uname -m)" in
+    x86_64)        echo "amd64" ;;
+    aarch64|arm64) echo "arm64" ;;
+    *) die "Unsupported architecture: $(uname -m). ham-apps supports amd64 and arm64." ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Base dependency installation (only curl is required before Go is set up)
 # ---------------------------------------------------------------------------
 install_deps() {
-  local missing=()
-  command -v git  &>/dev/null || missing+=(git)
-  command -v curl &>/dev/null || missing+=(curl)
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    info "Installing missing packages: ${missing[*]}"
+  if ! command -v curl &>/dev/null; then
+    info "Installing curl ..."
     run_cmd sudo apt-get update -qq
-    run_cmd sudo apt-get install -y "${missing[@]}"
+    run_cmd sudo apt-get install -y curl
   else
-    info "Dependencies already satisfied (git, curl)."
+    info "curl already installed."
   fi
 }
 
 # ---------------------------------------------------------------------------
-# Clone or skip
+# Go installation
+# Ensures Go 1.21+ is present. Downloads the latest stable release from
+# golang.org if Go is absent or the installed version is too old.
 # ---------------------------------------------------------------------------
-clone_repo() {
-  local target="$1"
-  local repo="${HAMAPPS_REPO:-https://github.com/KW4JLB/ham-apps.git}"
-  if [[ -d "$target/.git" ]]; then
-    warning "ham-apps already cloned at $target — skipping clone."
-  elif [[ -d "$target" ]]; then
-    die "Directory $target exists but is not a git repo. Remove it or set HAMAPPS_DIR to a different path."
-  else
-    info "Cloning ham-apps into $target ..."
-    run_cmd git clone "$repo" "$target"
-  fi
-}
+GO_MIN_MAJOR=1
+GO_MIN_MINOR=21
 
-# ---------------------------------------------------------------------------
-# PATH configuration
-# ---------------------------------------------------------------------------
-configure_path() {
-  local dir="${HAMAPPS_DIR:-$HOME/ham-apps}"
-  local export_line="export PATH=\"${dir}:\$PATH\""
-  local bashrc="${BASHRC_FILE:-$HOME/.bashrc}"
-  local zshrc="$HOME/.zshrc"
-
-  if ! grep -qF "$export_line" "$bashrc" 2>/dev/null; then
-    run_cmd bash -c "echo '$export_line' >> '$bashrc'"
-    info "Added ham-apps to PATH in $bashrc"
-  else
-    info "ham-apps PATH already set in $bashrc — skipping."
-  fi
-
-  if [[ -f "$zshrc" ]]; then
-    if ! grep -qF "$export_line" "$zshrc" 2>/dev/null; then
-      run_cmd bash -c "echo '$export_line' >> '$zshrc'"
-      info "Added ham-apps to PATH in $zshrc"
-    else
-      info "ham-apps PATH already set in $zshrc — skipping."
-    fi
-  fi
-}
-
-# ---------------------------------------------------------------------------
-# GUI binary installation
-# Downloads the pre-built ham-apps-gui binary from the latest GitHub release.
-# Falls back to building from source if Go is available and the download fails.
-# The binary lands at $HAMAPPS_DIR/gui/ham-apps-gui, which is where the
-# main ham-apps entry point expects to find it.
-# ---------------------------------------------------------------------------
-install_gui_binary() {
-  local hamapps_dir="$1"
-  local gui_dir="$hamapps_dir/gui"
-  local gui_binary="$gui_dir/ham-apps-gui"
-
-  # Detect architecture
+install_go() {
   local arch
-  case "$(uname -m)" in
-    x86_64)          arch="amd64" ;;
-    aarch64|arm64)   arch="arm64" ;;
-    *)               arch="" ;;
-  esac
+  arch="$(detect_arch)"
 
-  if [[ -z "$arch" ]]; then
-    warning "Unsupported architecture: $(uname -m). Skipping GUI binary download."
-    return 0
+  # Check existing Go installation
+  if command -v go &>/dev/null; then
+    local ver major minor
+    ver="$(go version | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+    major="${ver%%.*}"
+    minor="${ver##*.}"
+    if [[ "$major" -gt "$GO_MIN_MAJOR" ]] || \
+       { [[ "$major" -eq "$GO_MIN_MAJOR" ]] && [[ "$minor" -ge "$GO_MIN_MINOR" ]]; }; then
+      info "Go ${ver} already installed — meets minimum ${GO_MIN_MAJOR}.${GO_MIN_MINOR}."
+      return 0
+    fi
+    warning "Go ${ver} is too old (need ${GO_MIN_MAJOR}.${GO_MIN_MINOR}+). Installing newer version..."
   fi
 
-  # Fetch the latest release tag from the GitHub API.
+  local go_version
+  go_version="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1)"
+  if [[ -z "$go_version" ]]; then
+    die "Could not determine latest Go version from go.dev."
+  fi
+
+  local download_url="https://go.dev/dl/${go_version}.linux-${arch}.tar.gz"
+  local tmpfile
+  tmpfile="$(mktemp --suffix=.tar.gz)"
+
+  info "Downloading ${go_version} (linux/${arch}) ..."
+  if ! run_cmd curl -fsSL --output "$tmpfile" "$download_url"; then
+    rm -f "$tmpfile"
+    die "Failed to download Go from ${download_url}"
+  fi
+
+  info "Installing Go to /usr/local ..."
+  run_cmd sudo rm -rf /usr/local/go
+  run_cmd sudo tar -C /usr/local -xzf "$tmpfile"
+  rm -f "$tmpfile"
+
+  # Make Go available in the current session so subsequent steps can use it
+  export PATH="/usr/local/go/bin:$PATH"
+  success "Go ${go_version} installed."
+}
+
+# ---------------------------------------------------------------------------
+# Release installation
+# Fetches the latest GitHub release tag, then downloads the release tarball
+# which contains the ham-apps-gui binary plus apps/, scripts/, and data/.
+# Falls back to building from source if the tarball is unavailable.
+# ---------------------------------------------------------------------------
+install_release() {
+  local hamapps_dir="$1"
+  local arch
+  arch="$(detect_arch)"
+
   local latest_tag
-  latest_tag="$(curl -fsSL "https://api.github.com/repos/KW4JLB/ham-apps/releases/latest" \
+  latest_tag="$(curl -fsSL 'https://api.github.com/repos/KW4JLB/ham-apps/releases/latest' \
     2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
 
   if [[ -z "$latest_tag" ]]; then
-    warning "Could not determine latest release tag from GitHub API."
+    die "Could not determine latest release from GitHub API."
+  fi
+
+  info "Installing ham-apps ${latest_tag} ..."
+  mkdir -p "$hamapps_dir"
+
+  # --- Attempt 1: download the all-in-one release tarball ---
+  local tarball_url="https://github.com/KW4JLB/ham-apps/releases/download/${latest_tag}/ham-apps-${latest_tag}-linux-${arch}.tar.gz"
+  local tmpfile
+  tmpfile="$(mktemp --suffix=.tar.gz)"
+
+  if run_cmd curl -fsSL --output "$tmpfile" "$tarball_url" 2>/dev/null; then
+    run_cmd tar -xzf "$tmpfile" -C "$hamapps_dir" --strip-components=1
+    rm -f "$tmpfile"
+    success "ham-apps ${latest_tag} installed at ${hamapps_dir}"
+    return 0
+  fi
+
+  rm -f "$tmpfile"
+  warning "Release tarball not found. Attempting to build from source..."
+
+  # --- Attempt 2: build GUI from source using Go ---
+  if ! command -v go &>/dev/null; then
+    die "Go is not available and no pre-built release tarball was found for ${latest_tag}."
+  fi
+
+  local gui_dir="$hamapps_dir/gui"
+  if [[ ! -d "$gui_dir" ]]; then
+    die "No gui/ directory found at ${hamapps_dir}. Cannot build from source without the repository."
+  fi
+
+  info "Building ham-apps-gui from source ..."
+  if run_cmd make -C "$gui_dir" build; then
+    success "ham-apps-gui built from source at ${gui_dir}/ham-apps-gui"
   else
-    local download_url="https://github.com/KW4JLB/ham-apps/releases/download/${latest_tag}/ham-apps-gui-linux-${arch}"
-    info "Downloading GUI binary ${latest_tag} (linux/${arch}) ..."
-    if run_cmd curl -fsSL --output "$gui_binary" "$download_url"; then
-      run_cmd chmod 755 "$gui_binary"
-      success "GUI binary installed at $gui_binary"
-      return 0
-    else
-      warning "Download failed. Attempting to build from source..."
-    fi
+    die "Source build failed. See https://kw4jlb.github.io/ham-apps/getting-started/installation/"
   fi
+}
 
-  # Fallback: build from source if Go is available.
-  if command -v go &>/dev/null; then
-    info "Building GUI binary from source using 'make -C $gui_dir build' ..."
-    if run_cmd make -C "$gui_dir" build; then
-      success "GUI binary built from source at $gui_binary"
-      return 0
+# ---------------------------------------------------------------------------
+# PATH configuration — ham-apps binary and Go toolchain
+# ---------------------------------------------------------------------------
+configure_path() {
+  local hamapps_dir="${HAMAPPS_DIR:-$HOME/ham-apps}"
+  local bashrc="${BASHRC_FILE:-$HOME/.bashrc}"
+  local zshrc="$HOME/.zshrc"
+
+  local hamapps_line="export PATH=\"${hamapps_dir}:\$PATH\""
+  # shellcheck disable=SC2016  # $PATH must stay literal for the shell config line
+  local go_line='export PATH="/usr/local/go/bin:$PATH"'
+
+  _append_if_missing() {
+    local file="$1" line="$2" label="$3"
+    if ! grep -qF "$line" "$file" 2>/dev/null; then
+      run_cmd bash -c "echo '$line' >> '$file'"
+      info "Added ${label} to PATH in ${file}"
     else
-      warning "Build from source failed."
+      info "${label} PATH already set in ${file} — skipping."
     fi
-  fi
+  }
 
-  error "ham-apps GUI binary could not be installed. See https://kw4jlb.github.io/ham-apps/getting-started/installation/"
-  exit 1
+  _append_if_missing "$bashrc" "$hamapps_line" "ham-apps"
+  _append_if_missing "$bashrc" "$go_line"      "Go"
+
+  if [[ -f "$zshrc" ]]; then
+    _append_if_missing "$zshrc" "$hamapps_line" "ham-apps"
+    _append_if_missing "$zshrc" "$go_line"      "Go"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -251,7 +289,7 @@ print_banner() {
   echo "============================================================"
   echo ""
   echo "  Installation directory : $dir"
-  echo "  Added to PATH in       : $bashrc"
+  echo "  PATH updated in        : $bashrc"
   echo ""
   echo "  To start using ham-apps:"
   echo "    Reload your shell:    source $bashrc"
@@ -268,7 +306,6 @@ print_banner() {
 # ---------------------------------------------------------------------------
 if [[ "${HAMAPPS_TEST_MODE:-0}" -eq 0 ]]; then
   HAMAPPS_DIR="${HAMAPPS_DIR:-$HOME/ham-apps}"
-  HAMAPPS_REPO="${HAMAPPS_REPO:-https://github.com/KW4JLB/ham-apps.git}"
 
   if [[ $DRY_RUN -eq 1 ]]; then
     info "Dry-run mode enabled — no changes will be made."
@@ -277,11 +314,14 @@ if [[ "${HAMAPPS_TEST_MODE:-0}" -eq 0 ]]; then
       check_os
     fi
     validate_install_dir "$HAMAPPS_DIR"
-    run_cmd sudo apt-get update -qq
-    run_cmd sudo apt-get install -y git curl
-    run_cmd git clone "${HAMAPPS_REPO}" "$HAMAPPS_DIR"
-    run_cmd curl -fsSL --output "$HAMAPPS_DIR/gui/ham-apps-gui" "https://github.com/KW4JLB/ham-apps/releases/download/<tag>/ham-apps-gui-linux-<arch>"
+    run_cmd curl -fsSL --output /dev/null 'https://go.dev/VERSION?m=text'
+    run_cmd sudo rm -rf /usr/local/go
+    run_cmd sudo tar -C /usr/local -xzf go-latest.linux-amd64.tar.gz
+    run_cmd curl -fsSL --output "$HAMAPPS_DIR/ham-apps-linux-amd64.tar.gz" \
+      "https://github.com/KW4JLB/ham-apps/releases/download/<tag>/ham-apps-<tag>-linux-amd64.tar.gz"
+    run_cmd tar -xzf ham-apps-linux-amd64.tar.gz -C "$HAMAPPS_DIR" --strip-components=1
     run_cmd bash -c "echo 'export PATH=\"${HAMAPPS_DIR}:\$PATH\"' >> ~/.bashrc"
+    run_cmd bash -c "echo 'export PATH=\"/usr/local/go/bin:\$PATH\"' >> ~/.bashrc"
     success "Dry-run complete. No changes made."
     exit 0
   fi
@@ -289,8 +329,8 @@ if [[ "${HAMAPPS_TEST_MODE:-0}" -eq 0 ]]; then
   check_os
   validate_install_dir "$HAMAPPS_DIR"
   install_deps
-  clone_repo "$HAMAPPS_DIR"
-  install_gui_binary "$HAMAPPS_DIR"
+  install_go
+  install_release "$HAMAPPS_DIR"
   configure_path
   print_banner
 fi
