@@ -19,7 +19,6 @@ Below is a list of Applications to add to this project to have a more well round
 | LinPsk               | PSK31 program for Linux with multiple simultaneous receive windows | [Website](https://linpsk.sourceforge.net/)       | digital-modes          |
 | QSSTV                | Slow scan TV app for transmitting and receiving SSTV images | [Github](https://github.com/ON4QZ/QSSTV)                   | digital-modes          |
 | SlowRX               | Linux SSTV receiver using soundcard by OH2EIQ               | [Website](https://windytan.github.io/slowrx/)       | digital-modes          |
-| DXSpider             | Open-source DX cluster node software for amateur radio      | [Website](https://www.dxcluster.org/)                       | DX Cluster             |
 | ATLC                 | Calculates electrical properties of arbitrary transmission lines | [Sourceforge](https://atlc.sourceforge.net/)           | Engineering            |
 | Qucs                 | Integrated circuit simulator with GUI for RF/microwave design | [Website](https://qucs.sourceforge.net/) | Engineering |
 | ViPEC                | Network analyzer for high-frequency linear RF circuit analysis | [Website](https://vipec.sourceforge.net/) | Engineering     |
