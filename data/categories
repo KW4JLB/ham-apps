@@ -10,3 +10,4 @@ tools|Tools|Rig control, antenna analysis, and general utilities
 contest|Contest|Dedicated contest logging and automation
 mapping|Mapping|Geographic tools, APRS maps, and grid square utilities
 winlink|Winlink / Email|Radio email via Winlink and Vara HF/FM
+dx-cluster|DX Cluster|DX cluster node and spotting network software

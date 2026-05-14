@@ -1,0 +1,6 @@
+Open-source DX cluster node software that connects to the worldwide DX spotting network.
+
+DXSpider is a full-featured DX cluster node written in Perl. It allows amateur radio
+operators to post and receive DX spots, connect to the worldwide cluster network, and
+run a full cluster node serving other stations. Requires manual configuration of the
+cluster call sign in /spider/local/cluster.cfg before starting the service.

@@ -1,0 +1,161 @@
+#!/bin/bash
+# Install DXSpider — open-source DX cluster node software
+# shellcheck source=scripts/utils
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+# shellcheck source=scripts/utils
+source "$HAMAPPS_DIR/scripts/utils"
+
+SPIDER_DIR="/spider"
+SPIDER_REPO="https://github.com/latchdevel/DXspider"
+SERVICE_FILE="/etc/systemd/system/dxspider.service"
+
+# ---------------------------------------------------------------------------
+# Trap to clean up a partial clone on unexpected exit
+# ---------------------------------------------------------------------------
+_cleanup() {
+  if [[ -d "$SPIDER_DIR" && ! -d "$SPIDER_DIR/.git" ]]; then
+    warning "Removing partial clone at $SPIDER_DIR due to failure."
+    sudo rm -rf "$SPIDER_DIR"
+  fi
+}
+trap '_cleanup' EXIT
+
+# ---------------------------------------------------------------------------
+# Install Perl dependencies via apt (distro packages only — no CPAN)
+# ---------------------------------------------------------------------------
+info "Installing Perl dependencies..."
+sudo apt-get install -y --no-install-recommends \
+  perl \
+  libmojolicious-perl \
+  libdata-structure-util-perl \
+  libtimedate-perl \
+  libhtml-parser-perl \
+  libjson-perl \
+  libmath-round-perl \
+  libnet-telnet-perl \
+  libdigest-sha-perl
+
+# Attempt optional package; non-fatal if unavailable on this distro
+if ! sudo apt-get install -y --no-install-recommends libdata-dumper-simple-perl 2>/dev/null; then
+  warning "libdata-dumper-simple-perl not available on this distro — using core Data::Dumper (bundled with Perl)."
+fi
+
+# ---------------------------------------------------------------------------
+# Create sysop system user if not already present
+# ---------------------------------------------------------------------------
+info "Ensuring sysop system user exists..."
+id -u sysop &>/dev/null || sudo useradd -r -m -s /bin/bash sysop
+
+# ---------------------------------------------------------------------------
+# Clone or update the DXSpider repository to /spider
+# /spider is created with sysop ownership so the sysop user can write to it.
+# ---------------------------------------------------------------------------
+sudo mkdir -p "$SPIDER_DIR"
+sudo chown sysop:sysop "$SPIDER_DIR"
+
+if [[ -d "$SPIDER_DIR/.git" ]]; then
+  info "Updating existing DXSpider clone..."
+  sudo -u sysop env GIT_TERMINAL_PROMPT=0 git -C "$SPIDER_DIR" remote set-url origin "$SPIDER_REPO"
+  sudo -u sysop env GIT_TERMINAL_PROMPT=0 git -C "$SPIDER_DIR" -c credential.helper= pull --ff-only
+else
+  info "Cloning DXSpider from $SPIDER_REPO..."
+  sudo -u sysop env GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --depth 1 "$SPIDER_REPO" "$SPIDER_DIR"
+fi
+
+warning "DXSpider cloned from $SPIDER_REPO — verify the remote and review code before starting the service."
+
+# ---------------------------------------------------------------------------
+# Seed /spider/local with the template DXVars.pm if not already present.
+# cluster.pl will not start without this file — operator must edit it to set
+# their callsign ($mycall) and other site-specific variables.
+# ---------------------------------------------------------------------------
+info "Seeding /spider/local configuration..."
+sudo -u sysop mkdir -p "$SPIDER_DIR/local"
+if [[ ! -f "$SPIDER_DIR/local/DXVars.pm" ]]; then
+  sudo -u sysop cp "$SPIDER_DIR/perl/DXVars.pm.issue" "$SPIDER_DIR/local/DXVars.pm"
+fi
+
+# Initialize the user database (creates the sysop record from DXVars.pm).
+# On a fresh install this is non-interactive; on subsequent installs it is
+# skipped because the database files already exist.
+if [[ ! -f "$SPIDER_DIR/local_data/users.v3j" ]]; then
+  info "Initializing DXSpider user database..."
+  sudo -u sysop perl "$SPIDER_DIR/perl/create_sysop.pl"
+fi
+
+# ---------------------------------------------------------------------------
+# Write systemd service unit
+# cluster.pl lives under perl/ within the spider root and handles its own
+# chdir internally, so WorkingDirectory is set to the spider root.
+# ---------------------------------------------------------------------------
+info "Installing systemd service unit..."
+sudo tee "$SERVICE_FILE" > /dev/null <<'SYSTEMD'
+[Unit]
+Description=DXSpider DX Cluster Node
+After=network.target
+
+[Service]
+Type=simple
+User=sysop
+WorkingDirectory=/spider
+ExecStart=/usr/bin/perl /spider/perl/cluster.pl
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SYSTEMD
+
+sudo systemctl daemon-reload
+sudo systemctl enable dxspider
+
+# ---------------------------------------------------------------------------
+# Create management wrapper so 'dxspider' is on PATH
+# ---------------------------------------------------------------------------
+info "Installing dxspider management command..."
+sudo tee /usr/local/bin/dxspider > /dev/null <<'WRAPPER'
+#!/bin/bash
+set -euo pipefail
+case "${1:-status}" in
+  start)   sudo systemctl start dxspider ;;
+  stop)    sudo systemctl stop dxspider ;;
+  restart) sudo systemctl restart dxspider ;;
+  status)  sudo systemctl status dxspider ;;
+  log)     sudo journalctl -u dxspider -f ;;
+  *)
+    printf 'Usage: dxspider {start|stop|restart|status|log}\n' >&2
+    exit 1
+    ;;
+esac
+WRAPPER
+sudo chmod +x /usr/local/bin/dxspider
+
+# ---------------------------------------------------------------------------
+# Create desktop entry for application launchers
+# ---------------------------------------------------------------------------
+info "Installing desktop entry..."
+sudo mkdir -p /usr/local/share/applications
+sudo tee /usr/local/share/applications/dxspider.desktop > /dev/null <<'DESKTOP'
+[Desktop Entry]
+Name=DXSpider
+Comment=DX Cluster Node Management
+Exec=x-terminal-emulator -e dxspider
+Icon=network-server
+Type=Application
+Categories=HamRadio;Network;
+Terminal=false
+StartupNotify=false
+DESKTOP
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+
+warning "DXSpider installed but NOT started. Edit /spider/local/DXVars.pm to set your callsign, then run: dxspider start"
+
+# ---------------------------------------------------------------------------
+# Disable trap (clean install succeeded — nothing to clean up)
+# ---------------------------------------------------------------------------
+trap - EXIT
+
+mark_installed dxspider
+success "DXSpider installed."

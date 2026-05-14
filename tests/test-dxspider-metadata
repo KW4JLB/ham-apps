@@ -1,0 +1,142 @@
+#!/bin/bash
+# tests/test-dxspider-metadata
+# Unit tests for static file correctness of the apps/dxspider/ app entry.
+# Red phase: install/uninstall existence tests fail before Phase 2 creates scripts.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+APP_DIR="$REPO_ROOT/apps/dxspider"
+METADATA="$APP_DIR/metadata"
+DESCRIPTION="$APP_DIR/description"
+INSTALL="$APP_DIR/install"
+UNINSTALL="$APP_DIR/uninstall"
+CATEGORIES="$REPO_ROOT/data/categories"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ---------------------------------------------------------------------------
+# Test 1: metadata file exists
+# ---------------------------------------------------------------------------
+if [[ -f "$METADATA" ]]; then
+  pass "apps/dxspider/metadata exists"
+else
+  fail "apps/dxspider/metadata does NOT exist"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: metadata contains name=DXSpider
+# ---------------------------------------------------------------------------
+if grep -qF 'name=DXSpider' "$METADATA" 2>/dev/null; then
+  pass "metadata contains name=DXSpider"
+else
+  fail "metadata does NOT contain name=DXSpider"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: metadata contains category=dx-cluster
+# ---------------------------------------------------------------------------
+if grep -qF 'category=dx-cluster' "$METADATA" 2>/dev/null; then
+  pass "metadata contains category=dx-cluster"
+else
+  fail "metadata does NOT contain category=dx-cluster"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: metadata category matches a known category in data/categories
+# ---------------------------------------------------------------------------
+if grep -qF 'dx-cluster|' "$CATEGORIES" 2>/dev/null; then
+  pass "metadata category 'dx-cluster' is defined in data/categories"
+else
+  fail "metadata category 'dx-cluster' is NOT defined in data/categories"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: metadata contains website=https://www.dxcluster.org/
+# ---------------------------------------------------------------------------
+if grep -qF 'website=https://www.dxcluster.org/' "$METADATA" 2>/dev/null; then
+  pass "metadata contains website=https://www.dxcluster.org/"
+else
+  fail "metadata does NOT contain website=https://www.dxcluster.org/"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: metadata contains tags= with at least one tag
+# ---------------------------------------------------------------------------
+if grep -qE 'tags=.+' "$METADATA" 2>/dev/null; then
+  pass "metadata contains tags= with at least one tag"
+else
+  fail "metadata does NOT contain tags= with at least one tag"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: metadata contains min-os= field
+# ---------------------------------------------------------------------------
+if grep -q 'min-os=' "$METADATA" 2>/dev/null; then
+  pass "metadata contains min-os= field"
+else
+  fail "metadata does NOT contain min-os= field"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: description file exists
+# ---------------------------------------------------------------------------
+if [[ -f "$DESCRIPTION" ]]; then
+  pass "apps/dxspider/description exists"
+else
+  fail "apps/dxspider/description does NOT exist"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 9: description first line is non-empty and <=120 chars
+# ---------------------------------------------------------------------------
+first_line="$(head -n1 "$DESCRIPTION" 2>/dev/null || true)"
+if [[ -n "$first_line" ]]; then
+  len="${#first_line}"
+  if [[ "$len" -le 120 ]]; then
+    pass "description first line is non-empty and <=120 chars (${len} chars)"
+  else
+    fail "description first line is too long: ${len} chars (max 120)"
+  fi
+else
+  fail "description first line is empty"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: description mentions DX cluster or DXSpider
+# ---------------------------------------------------------------------------
+if grep -qi 'DX cluster\|DXSpider' "$DESCRIPTION" 2>/dev/null; then
+  pass "description mentions DX cluster or DXSpider"
+else
+  fail "description does NOT mention DX cluster or DXSpider"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: install file exists and is executable
+# ---------------------------------------------------------------------------
+if [[ -f "$INSTALL" ]] && [[ -x "$INSTALL" ]]; then
+  pass "apps/dxspider/install exists and is executable"
+else
+  fail "apps/dxspider/install does NOT exist or is NOT executable"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 12: uninstall file exists and is executable
+# ---------------------------------------------------------------------------
+if [[ -f "$UNINSTALL" ]] && [[ -x "$UNINSTALL" ]]; then
+  pass "apps/dxspider/uninstall exists and is executable"
+else
+  fail "apps/dxspider/uninstall does NOT exist or is NOT executable"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

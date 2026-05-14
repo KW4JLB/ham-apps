@@ -1,0 +1,5 @@
+name=DXSpider
+category=dx-cluster
+website=https://www.dxcluster.org/
+tags=dx-cluster,dx-spots,packet,cluster,node,perl
+min-os=Debian 11, Ubuntu 20.04

@@ -1,0 +1,254 @@
+#!/bin/bash
+# tests/test-dxspider-scripts
+# Integration tests: verify install/uninstall script structure and shellcheck compliance.
+# Red phase: these tests FAIL before apps/dxspider/install and apps/dxspider/uninstall exist.
+
+REPO_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+INSTALL="$REPO_ROOT/apps/dxspider/install"
+UNINSTALL="$REPO_ROOT/apps/dxspider/uninstall"
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)) || true; }
+fail() { echo "FAIL: $1"; ((FAIL++)) || true; }
+
+# ===========================================================================
+# INSTALL SCRIPT TESTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Test 1: install contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$INSTALL" 2>/dev/null; then
+  pass "install contains set -euo pipefail"
+else
+  fail "install does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: install sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$INSTALL" 2>/dev/null; then
+  pass "install sources scripts/utils"
+else
+  fail "install does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: install has trap for cleanup on failure
+# ---------------------------------------------------------------------------
+if grep -qF 'trap' "$INSTALL" 2>/dev/null; then
+  pass "install has trap for cleanup on failure"
+else
+  fail "install does NOT have trap for cleanup on failure"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: install references the dxspider git clone URL
+# ---------------------------------------------------------------------------
+if grep -q 'https://github.com/latchdevel/DXspider' "$INSTALL" 2>/dev/null; then
+  pass "install references https://github.com/latchdevel/DXspider clone URL"
+else
+  fail "install does NOT reference https://github.com/latchdevel/DXspider clone URL"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: install references /spider install location
+# ---------------------------------------------------------------------------
+if grep -q 'SPIDER_DIR="/spider"' "$INSTALL" 2>/dev/null; then
+  pass "install references /spider install location"
+else
+  fail "install does NOT reference /spider install location"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: install creates sysop user with useradd
+# ---------------------------------------------------------------------------
+if grep -q 'useradd' "$INSTALL" 2>/dev/null; then
+  pass "install creates sysop user with useradd"
+else
+  fail "install does NOT create sysop user with useradd"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: install references /etc/systemd/system/dxspider.service
+# ---------------------------------------------------------------------------
+if grep -q '/etc/systemd/system/dxspider.service' "$INSTALL" 2>/dev/null; then
+  pass "install references /etc/systemd/system/dxspider.service"
+else
+  fail "install does NOT reference /etc/systemd/system/dxspider.service"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: install calls systemctl enable dxspider
+# ---------------------------------------------------------------------------
+if grep -q 'systemctl enable dxspider' "$INSTALL" 2>/dev/null; then
+  pass "install calls systemctl enable dxspider"
+else
+  fail "install does NOT call systemctl enable dxspider"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 9: install calls mark_installed dxspider
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_installed dxspider' "$INSTALL" 2>/dev/null; then
+  pass "install calls mark_installed dxspider"
+else
+  fail "install does NOT call mark_installed dxspider"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: install does NOT directly call systemctl start dxspider (must not autostart)
+# Match only bare invocations, not the 'start)' case branch inside the wrapper here-doc
+# ---------------------------------------------------------------------------
+if grep -Eq '^\s*(sudo )?systemctl start dxspider\s*$' "$INSTALL" 2>/dev/null; then
+  fail "install directly calls 'systemctl start dxspider' — service must NOT be autostarted"
+else
+  pass "install does NOT directly call 'systemctl start dxspider' (correct — no autostart)"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10a: install creates /usr/local/bin/dxspider management wrapper
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/bin/dxspider' "$INSTALL" 2>/dev/null; then
+  pass "install references /usr/local/bin/dxspider management wrapper"
+else
+  fail "install does NOT reference /usr/local/bin/dxspider management wrapper"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10b: install creates /usr/local/share/applications/dxspider.desktop
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/share/applications/dxspider.desktop' "$INSTALL" 2>/dev/null; then
+  pass "install references /usr/local/share/applications/dxspider.desktop"
+else
+  fail "install does NOT reference /usr/local/share/applications/dxspider.desktop"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: install passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for install"
+elif [[ ! -f "$INSTALL" ]]; then
+  fail "install does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$INSTALL" 2>/dev/null; then
+    pass "install passes shellcheck with zero errors"
+  else
+    fail "install does NOT pass shellcheck"
+    shellcheck -x "$INSTALL" 2>&1 | head -20
+  fi
+fi
+
+# ===========================================================================
+# UNINSTALL SCRIPT TESTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Test 12: uninstall contains set -euo pipefail
+# ---------------------------------------------------------------------------
+if grep -qF 'set -euo pipefail' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall contains set -euo pipefail"
+else
+  fail "uninstall does NOT contain set -euo pipefail"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 13: uninstall sources scripts/utils
+# ---------------------------------------------------------------------------
+if grep -q 'source.*scripts/utils' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall sources scripts/utils"
+else
+  fail "uninstall does NOT source scripts/utils"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 14: uninstall references /home/sysop/spider removal
+# ---------------------------------------------------------------------------
+if grep -q '/home/sysop/spider' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /home/sysop/spider removal"
+else
+  fail "uninstall does NOT reference /home/sysop/spider removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 15: uninstall references /etc/systemd/system/dxspider.service removal
+# ---------------------------------------------------------------------------
+if grep -q '/etc/systemd/system/dxspider.service' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /etc/systemd/system/dxspider.service removal"
+else
+  fail "uninstall does NOT reference /etc/systemd/system/dxspider.service removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 16: uninstall calls systemctl stop and systemctl disable
+# ---------------------------------------------------------------------------
+if grep -q 'systemctl stop' "$UNINSTALL" 2>/dev/null && grep -q 'systemctl disable' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall calls systemctl stop and systemctl disable"
+else
+  fail "uninstall does NOT call both systemctl stop and systemctl disable"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 16b: uninstall removes /usr/local/bin/dxspider
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/bin/dxspider' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /usr/local/bin/dxspider removal"
+else
+  fail "uninstall does NOT reference /usr/local/bin/dxspider removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 16c: uninstall removes dxspider.desktop
+# ---------------------------------------------------------------------------
+if grep -q '/usr/local/share/applications/dxspider.desktop' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall references /usr/local/share/applications/dxspider.desktop removal"
+else
+  fail "uninstall does NOT reference /usr/local/share/applications/dxspider.desktop removal"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 17: uninstall contains warning about manual sysop user removal
+# ---------------------------------------------------------------------------
+if grep -q 'warning' "$UNINSTALL" 2>/dev/null && grep -q 'sysop' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall contains warning about sysop user"
+else
+  fail "uninstall does NOT contain warning about sysop user"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 18: uninstall calls mark_uninstalled dxspider
+# ---------------------------------------------------------------------------
+if grep -qF 'mark_uninstalled dxspider' "$UNINSTALL" 2>/dev/null; then
+  pass "uninstall calls mark_uninstalled dxspider"
+else
+  fail "uninstall does NOT call mark_uninstalled dxspider"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 19: uninstall passes shellcheck with zero errors
+# ---------------------------------------------------------------------------
+if ! command -v shellcheck &>/dev/null; then
+  echo "WARN: shellcheck not installed — skipping shellcheck test for uninstall"
+elif [[ ! -f "$UNINSTALL" ]]; then
+  fail "uninstall does NOT exist — shellcheck skipped"
+else
+  if shellcheck -x "$UNINSTALL" 2>/dev/null; then
+    pass "uninstall passes shellcheck with zero errors"
+  else
+    fail "uninstall does NOT pass shellcheck"
+    shellcheck -x "$UNINSTALL" 2>&1 | head -20
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+fi
+exit 0

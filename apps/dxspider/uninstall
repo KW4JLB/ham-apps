@@ -1,0 +1,68 @@
+#!/bin/bash
+# Uninstall DXSpider — open-source DX cluster node software
+# shellcheck source=scripts/utils
+
+set -euo pipefail
+HAMAPPS_DIR="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
+# shellcheck source=scripts/utils
+source "$HAMAPPS_DIR/scripts/utils"
+
+SERVICE_FILE="/etc/systemd/system/dxspider.service"
+SPIDER_DIR="/spider"
+
+# ---------------------------------------------------------------------------
+# Stop and disable the service if it is active / enabled
+# ---------------------------------------------------------------------------
+info "Stopping dxspider service if running..."
+if sudo systemctl is-active dxspider &>/dev/null; then
+  sudo systemctl stop dxspider
+fi
+if sudo systemctl is-enabled dxspider &>/dev/null; then
+  sudo systemctl disable dxspider
+fi
+
+# ---------------------------------------------------------------------------
+# Remove systemd service unit and reload daemon
+# ---------------------------------------------------------------------------
+info "Removing systemd service unit..."
+sudo rm -f "$SERVICE_FILE"
+sudo systemctl daemon-reload
+
+# ---------------------------------------------------------------------------
+# Remove DXSpider install directory (warns operator first)
+# ---------------------------------------------------------------------------
+warning "Removing $SPIDER_DIR — this deletes all cluster data."
+sudo rm -rf "$SPIDER_DIR"
+# Clean up legacy installation path from older versions
+[[ -d /home/sysop/spider ]] && sudo rm -rf /home/sysop/spider
+
+# ---------------------------------------------------------------------------
+# Warn operator that the sysop user must be removed manually if desired
+# ---------------------------------------------------------------------------
+warning "The 'sysop' system user was NOT removed. Remove manually with: sudo userdel -r sysop"
+
+# ---------------------------------------------------------------------------
+# Remove management wrapper and desktop entry
+# ---------------------------------------------------------------------------
+info "Removing dxspider command and desktop entry..."
+sudo rm -f /usr/local/bin/dxspider
+sudo rm -f /usr/local/share/applications/dxspider.desktop
+sudo update-desktop-database /usr/local/share/applications/ 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# Remove DXSpider-specific Perl apt packages
+# Do NOT remove 'perl' itself — it is a core system dependency
+# ---------------------------------------------------------------------------
+info "Removing DXSpider-specific Perl packages..."
+sudo apt-get remove -y \
+  libmojolicious-perl \
+  libdata-structure-util-perl \
+  libtimedate-perl \
+  libhtml-parser-perl \
+  libjson-perl \
+  libmath-round-perl \
+  libnet-telnet-perl \
+  libdigest-sha-perl || true
+
+mark_uninstalled dxspider
+success "DXSpider removed."
