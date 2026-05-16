@@ -45,7 +45,7 @@ Below is a list of Applications to add to this project to have a more well round
 | GQRX                 | Free open-source SDR receiver application for Linux and macOS | [Website](https://gqrx.dk/)                                | sdr                    |
 | Linrad               | Open-source software-defined receiver for Linux with DSP    | [Website](http://www.nitehawk.com/sm5bsz/linuxdsp/linrad.htm) | sdr                 |
 | QRadioLink           | Linux analog/digital SDR transceiver with Codec2 digital voice | [Website](http://qradiolink.org/)                          | sdr                    |
-| CHIRP                | Free open-source radio programming tool supporting hundreds of transceivers | [Website](https://chirpmyradio.com/projects/chirp/wiki/Home) | tools               |
+| CHIRP                | Not A Good Candidate due to cloudflare bot protection - Free open-source radio programming tool supporting hundreds of transceivers | [Website](https://chirpmyradio.com/projects/chirp/wiki/Home) | tools               |
 | cqrprop              | HF propagation desktop tool for Linux using HamQSL/CQRLOG data | [Website](https://ok2cqr.com/linuxsw/how-to/cqrprop-hf-propagation-to-your-linux-desktop) | tools |
 | dxSpot               | Java-based DX cluster interface for Linux via dxWorld.com   | [Website](https://www.dbbear.com/k0emt/projsoft/dxspot/)   | tools                  |
 | DX_Central           | Desktop app displaying real-time solar stats and images from NOAA | [Website](https://store.falkon.org/p/1131806)          | tools                  |
